@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Piano Nazionale Complementare - Risorse per comune</title>
+<title>Risorse PNC per comune</title>
 <meta name="description" content="Mappa interattiva delle risorse del Piano Nazionale Complementare al PNRR assegnate ai comuni italiani, per totale e per settore di intervento.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -80,6 +80,7 @@ select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid 
 .suggest ul{margin:0; padding:0}
 .spacer{flex:1 1 auto}
 .linkbtn{background:none; border:0; color:var(--navy-600); font-size:14px; cursor:pointer; padding:9px 2px; text-decoration:underline; text-underline-offset:3px}
+.linkbtn:disabled{color:var(--ink-3); cursor:default; text-decoration:none}
 
 /* ------------------------------------------------------------------ main */
 main .wrap{display:grid; grid-template-columns:minmax(0,1fr) 372px; gap:22px; padding-top:22px; padding-bottom:36px; align-items:start}
@@ -1082,7 +1083,7 @@ document.addEventListener('click', (e) => {
 });
 
 /* -------------------------------------------------------------------- CSV */
-document.getElementById('csv').onclick = () => {
+function buildCsv() {
   const cols = ['codice_istat', 'comune', 'provincia', 'regione', 'popolazione', 'totale_pnc']
     .concat(DATA.subjects.map((s) => s.k.toLowerCase().replace(/[^a-z0-9]+/g, '_')));
   const lines = [cols.join(';')];
@@ -1090,9 +1091,40 @@ document.getElementById('csv').onclick = () => {
     const u = DATA.units[i];
     const row = [u[4], u[0], u[2], u[3], POP[i], DATA.total[i]]
       .concat(DATA.subjects.map((s) => s.dense[i]));
-    lines.push(row.map((v) => typeof v === 'string' && /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v).join(';'));
+    lines.push(row.map((v) => typeof v === 'string' && /[;"\n]/.test(v)
+      ? '"' + v.replace(/"/g, '""') + '"' : v).join(';'));
   }
-  const blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+  return '\ufeff' + lines.join('\n');
+}
+
+// Opened as a local file an anchor is enough; inside the claude.ai viewer a
+// framed page cannot download on its own, so the save goes through the host.
+const csvBtn = document.getElementById('csv');
+const hosted = typeof window.claude === 'object' && window.claude !== null
+  && typeof window.claude.use === 'function';
+let downloads = null;
+if (hosted) {
+  csvBtn.disabled = true;
+  csvBtn.textContent = 'Preparazione del download...';
+  window.claude.use('downloads').then((d) => {
+    downloads = d;
+    if (d) { csvBtn.disabled = false; csvBtn.textContent = 'Scarica i dati (CSV)'; }
+    else csvBtn.remove();
+  }, () => csvBtn.remove());
+}
+csvBtn.onclick = async () => {
+  const blob = new Blob([buildCsv()], { type: 'text/csv;charset=utf-8' });
+  if (downloads) {
+    try {
+      await downloads.save({ filename: 'pnc-comuni.csv', data: blob });
+    } catch (e) {
+      if (e && e.code !== 'declined' && e.code !== 'rate_limited') {
+        csvBtn.disabled = true;
+        csvBtn.textContent = 'Download non disponibile qui';
+      }
+    }
+    return;
+  }
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'pnc-comuni.csv';

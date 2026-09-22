@@ -129,7 +129,8 @@ def main():
         'limits_IT_municipalities.topo.json'))
     ap.add_argument('--xlsx', default=os.path.join(ROOT, 'Dataset PNC.xlsx'))
     ap.add_argument('--template', default=os.path.join(ROOT, 'build', 'template.html'))
-    ap.add_argument('--out', default=os.path.join(ROOT, 'mappa-pnc.html'))
+    # index.html so that GitHub Pages serves it at the root of the site
+    ap.add_argument('--out', default=os.path.join(ROOT, 'index.html'))
     args = ap.parse_args()
 
     # ---------------------------------------------------------------- data
