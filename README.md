@@ -3,9 +3,11 @@
 Mappa interattiva degli importi del Piano Nazionale Complementare al PNRR (PNC)
 assegnati ai 7.894 comuni italiani: totale e dettaglio per settore di intervento.
 
-**Deliverable:** [`mappa-pnc.html`](mappa-pnc.html) - un unico file HTML autosufficiente
+**Deliverable:** [`index.html`](index.html) - un unico file HTML autosufficiente
 (~1,9 MB). Si apre con un doppio clic, non richiede un server, funziona anche offline
-(senza rete usa i font di sistema invece di Titillium Web).
+(senza rete usa i font di sistema invece di Titillium Web). Si chiama `index.html`
+perche' GitHub Pages lo pubblichi alla radice del sito:
+<https://mcaruso17.github.io/pnc/>.
 
 ## Cosa contiene la pagina
 
@@ -50,7 +52,7 @@ assegnati ai 7.894 comuni italiani: totale e dettaglio per settore di intervento
 
 ```sh
 git clone --depth 1 https://github.com/openpolis/geojson-italy ../openpolis/geojson-italy
-python3 build/build_site.py      # scrive mappa-pnc.html
+python3 build/build_site.py      # scrive index.html
 python3 build/verify.py          # ricontrolla i valori generati sul workbook
 ```
 
