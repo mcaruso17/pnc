@@ -1,0 +1,1135 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Piano Nazionale Complementare - Risorse per comune</title>
+<meta name="description" content="Mappa interattiva delle risorse del Piano Nazionale Complementare al PNRR assegnate ai comuni italiani, per totale e per settore di intervento.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Titillium+Web:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: light;
+  --navy-900:#0a2740; --navy-800:#123a5e; --navy-700:#17456d; --navy-600:#1d5384;
+  --gold:#c9a227;
+  --ink:#1b2734; --ink-2:#4a5b6b; --ink-3:#7b8a98;
+  --surface:#eef1f4; --card:#ffffff; --rule:#d6dde4; --rule-strong:#b9c4ce;
+  --focus:#1d5384;
+  --seq-0:#cde2fb; --seq-1:#9ec5f4; --seq-2:#6da7ec; --seq-3:#3987e5;
+  --seq-4:#256abf; --seq-5:#184f95; --seq-6:#0d366b;
+  --zero:#e6eaee; --nodata:#f3f4f5;
+  --sans:'Titillium Web',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  --mono:'Roboto Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --shadow:0 1px 2px rgba(10,39,64,.06),0 4px 14px rgba(10,39,64,.06);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--sans); color:var(--ink); background:var(--surface);
+  font-size:16px; line-height:1.5; -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{margin:0; font-weight:600; letter-spacing:-.01em}
+a{color:var(--navy-600)}
+button,select,input{font:inherit; color:inherit}
+
+/* ---------------------------------------------------------------- header */
+.topstrip{background:var(--navy-900); color:#cfdcea; font-size:12.5px; letter-spacing:.02em}
+.topstrip .wrap{display:flex; justify-content:space-between; align-items:center; gap:16px; min-height:34px; flex-wrap:wrap}
+.wrap{max-width:1560px; margin:0 auto; padding:0 24px}
+.masthead{background:var(--navy-800); color:#fff; border-bottom:3px solid var(--gold)}
+.masthead .wrap{display:flex; align-items:flex-end; justify-content:space-between; gap:24px; padding-top:22px; padding-bottom:20px; flex-wrap:wrap}
+.masthead h1{font-size:27px; line-height:1.18; font-weight:700}
+.masthead h1 span{display:block; font-size:15px; font-weight:400; letter-spacing:.06em; text-transform:uppercase; color:#9fbcd8; margin-bottom:6px}
+.masthead .tagline{font-size:15px; color:#c6d7e6; margin-top:7px; max-width:70ch}
+.headline{text-align:right; flex:0 0 auto}
+.headline .val{font-family:var(--mono); font-size:30px; font-weight:500; letter-spacing:-.02em; display:block}
+.headline .lab{font-size:12.5px; text-transform:uppercase; letter-spacing:.08em; color:#9fbcd8}
+
+/* -------------------------------------------------------------- controls */
+.toolbar{background:var(--card); border-bottom:1px solid var(--rule); position:sticky; top:0; z-index:30; box-shadow:0 1px 0 rgba(10,39,64,.04)}
+.toolbar .wrap{display:flex; align-items:flex-end; gap:18px; padding-top:13px; padding-bottom:13px; flex-wrap:wrap}
+.field{display:flex; flex-direction:column; gap:5px; min-width:0}
+.field>label{font-size:11.5px; font-weight:600; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-2)}
+select,.searchbox input{
+  appearance:none; background:#fff; border:1px solid var(--rule-strong); border-radius:2px;
+  padding:8px 34px 8px 11px; font-size:15px; min-height:38px; cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%23123a5e' stroke-width='1.8'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 11px center;
+}
+select#subject{min-width:320px; font-weight:600}
+.searchbox input{background-image:none; padding-right:11px; cursor:text; width:230px}
+select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--focus); outline-offset:1px}
+.segmented{display:inline-flex; border:1px solid var(--rule-strong); border-radius:2px; overflow:hidden; background:#fff}
+.segmented button{
+  border:0; background:#fff; padding:9px 15px; font-size:14.5px; cursor:pointer;
+  color:var(--ink-2); min-height:38px; white-space:nowrap;
+}
+.segmented button+button{border-left:1px solid var(--rule)}
+.segmented button[aria-pressed=true]{background:var(--navy-700); color:#fff; font-weight:600}
+.searchbox{position:relative}
+.suggest{
+  position:absolute; top:100%; left:0; right:0; z-index:40; background:#fff;
+  border:1px solid var(--rule-strong); border-top:0; max-height:280px; overflow:auto;
+  box-shadow:var(--shadow); display:none;
+}
+.suggest.open{display:block}
+.suggest li{list-style:none; padding:7px 11px; font-size:14.5px; cursor:pointer; display:flex; justify-content:space-between; gap:10px}
+.suggest li[aria-selected=true],.suggest li:hover{background:#eaf1f8}
+.suggest li em{font-style:normal; color:var(--ink-3); font-size:12.5px}
+.suggest ul{margin:0; padding:0}
+.spacer{flex:1 1 auto}
+.linkbtn{background:none; border:0; color:var(--navy-600); font-size:14px; cursor:pointer; padding:9px 2px; text-decoration:underline; text-underline-offset:3px}
+
+/* ------------------------------------------------------------------ main */
+main .wrap{display:grid; grid-template-columns:minmax(0,1fr) 372px; gap:22px; padding-top:22px; padding-bottom:36px; align-items:start}
+.panel{background:var(--card); border:1px solid var(--rule); border-radius:2px; box-shadow:var(--shadow)}
+.panel>header{padding:13px 17px 11px; border-bottom:1px solid var(--rule)}
+.panel>header h2{font-size:14px; text-transform:uppercase; letter-spacing:.07em; color:var(--navy-800)}
+.panel>header p{margin:3px 0 0; font-size:13px; color:var(--ink-2)}
+
+.mapwrap{position:relative; background:#f8fafb}
+#map{display:block; width:100%; height:min(78vh,860px); touch-action:none; cursor:grab}
+#map.dragging{cursor:grabbing}
+.mapcaption{padding:14px 18px 13px; border-bottom:1px solid var(--rule);
+  display:flex; align-items:flex-end; justify-content:space-between; gap:28px; flex-wrap:wrap}
+.mapcaption h2{font-size:19px; letter-spacing:-.01em}
+.mapcaption p{margin:3px 0 0; font-size:13.5px; color:var(--ink-2); max-width:62ch}
+.caption-text{min-width:240px; flex:1 1 320px}
+.card{
+  position:absolute; background:rgba(255,255,255,.94); backdrop-filter:blur(3px);
+  border:1px solid var(--rule); border-radius:2px; box-shadow:var(--shadow);
+}
+.card>h3{font-size:11.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--navy-800);
+  padding:10px 13px 8px; border-bottom:1px solid var(--rule)}
+#regionCard{right:14px; top:14px; width:286px; max-height:calc(100% - 28px); display:flex; flex-direction:column}
+#regionList{overflow:auto; padding:6px 0 8px}
+.regrow{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px 9px; align-items:baseline;
+  padding:4px 13px; cursor:pointer; font-size:13px}
+.regrow:hover,.regrow.on{background:#eaf1f8}
+.regrow .nm{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.regrow .vv{font-family:var(--mono); font-size:11.5px; color:var(--ink-2)}
+.regrow .track{grid-column:1/3; height:4px; background:#e8ecf0; border-radius:2px; margin-top:-3px}
+.regrow .track i{display:block; height:100%; background:var(--seq-3); border-radius:2px}
+.regrow.on .track i{background:var(--navy-800)}
+.zoomctl{position:absolute; top:14px; left:14px; display:flex; flex-direction:column; gap:1px; background:var(--rule-strong); border:1px solid var(--rule-strong); border-radius:2px; overflow:hidden}
+.zoomctl button{width:34px; height:34px; border:0; background:#fff; cursor:pointer; font-size:17px; line-height:1; color:var(--navy-800)}
+.zoomctl button:hover{background:#eaf1f8}
+.zoomctl button.small{font-size:11px; letter-spacing:.04em}
+.loading{position:absolute; inset:0; display:grid; place-items:center; background:#f8fafb; color:var(--ink-2); font-size:14px}
+
+.legend{flex:0 1 392px; min-width:300px}
+.ramp{min-width:0}
+.rampHead{display:flex; justify-content:space-between; align-items:center; gap:12px;
+  font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--navy-800);
+  font-weight:600; margin-bottom:6px}
+.ramp .bins{display:flex; height:15px}
+.ramp .bins div{flex:1 1 0; cursor:pointer; transition:opacity .12s}
+.ramp .bins div:first-child{border-radius:2px 0 0 2px}
+.ramp .bins div:last-child{border-radius:0 2px 2px 0}
+.ramp.muted .bins div:not(.on){opacity:.35}
+.ramp .ticks{display:flex; margin-top:5px; font-family:var(--mono); font-size:11px; color:var(--ink-2)}
+.ramp .ticks span{flex:1 1 0; text-align:right; transform:translateX(50%); white-space:nowrap}
+.ramp .ticks span.hide{visibility:hidden}
+.ramp .ticks span:last-child{visibility:hidden}
+.ramp .cap{font-size:11.5px; line-height:1.45; color:var(--ink-2); margin-top:8px}
+.keys{display:flex; align-items:center; gap:6px; font-size:11px; color:var(--ink-2);
+  text-transform:none; letter-spacing:0; font-weight:400; white-space:nowrap}
+.keys i{width:12px; height:12px; border:1px solid var(--rule-strong); border-radius:2px; display:inline-block; flex:0 0 auto}
+
+.tooltip{
+  position:fixed; z-index:60; pointer-events:none; background:rgba(10,39,64,.96); color:#fff;
+  padding:9px 12px; border-radius:2px; font-size:13.5px; max-width:290px; box-shadow:0 6px 22px rgba(10,39,64,.28);
+  opacity:0; transition:opacity .08s;
+}
+.tooltip.on{opacity:1}
+.tooltip b{display:block; font-size:15px; font-weight:600; margin-bottom:2px}
+.tooltip .sub{color:#a9c3da; font-size:12px; margin-bottom:6px}
+.tooltip .row{display:flex; justify-content:space-between; gap:18px; font-family:var(--mono); font-size:12.5px}
+.tooltip .row span:first-child{font-family:var(--sans); color:#c6d7e6}
+
+/* ------------------------------------------------------------------ side */
+.side{display:flex; flex-direction:column; gap:22px}
+.stats{display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--rule)}
+.stats div{background:#fff; padding:13px 15px}
+.stats .k{font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-2)}
+.stats .v{font-family:var(--mono); font-size:19px; font-weight:500; margin-top:3px; letter-spacing:-.01em}
+.stats .v small{font-family:var(--sans); font-size:12.5px; color:var(--ink-2); font-weight:400}
+
+.rank{margin:0; padding:0; list-style:none}
+.rank li{display:grid; grid-template-columns:22px minmax(0,1fr) auto; gap:9px; align-items:baseline; padding:7px 17px; cursor:pointer; border-bottom:1px solid #eef1f4}
+.rank li:last-child{border-bottom:0}
+.rank li:hover,.rank li.sel{background:#eaf1f8}
+.rank .n{font-family:var(--mono); font-size:12px; color:var(--ink-3)}
+.rank .nm{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:14.5px}
+.rank .nm em{font-style:normal; color:var(--ink-3); font-size:12px}
+.rank .vv{font-family:var(--mono); font-size:13px; white-space:nowrap}
+.rank .bar{grid-column:2/4; height:3px; background:var(--seq-3); border-radius:2px; margin-top:-2px}
+
+.detail{padding:15px 17px 17px}
+.detail .empty{color:var(--ink-2); font-size:14px; margin:0}
+.detail h3{font-size:20px; letter-spacing:-.015em}
+.detail .place{font-size:13px; color:var(--ink-2); margin:2px 0 13px}
+.detail .big{display:flex; gap:22px; padding-bottom:13px; border-bottom:1px solid var(--rule); flex-wrap:wrap}
+.detail .big div .k{font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-2)}
+.detail .big div .v{font-family:var(--mono); font-size:20px; font-weight:500}
+.brk{margin:13px 0 0; padding:0; list-style:none}
+.brk li{margin-bottom:9px}
+.brk .t{display:flex; justify-content:space-between; gap:10px; font-size:13.5px; margin-bottom:3px}
+.brk .t span:last-child{font-family:var(--mono); font-size:12.5px; white-space:nowrap}
+.brk .track{height:6px; background:#eef1f4; border-radius:3px; overflow:hidden}
+.brk .track i{display:block; height:100%; background:var(--seq-4); border-radius:3px}
+.brk li.cur .t{font-weight:600}
+.brk li.cur .track i{background:var(--navy-800)}
+.brk .none{color:var(--ink-3); font-size:13px}
+
+/* ---------------------------------------------------------------- footer */
+footer{background:var(--navy-900); color:#b9cbdc; font-size:13px; margin-top:8px}
+footer .wrap{padding-top:26px; padding-bottom:30px; display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:26px}
+footer h3{font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:#fff; margin-bottom:8px}
+footer p{margin:0 0 8px}
+footer a{color:#9fc4e8}
+.note{color:#8fa6ba; font-size:12.5px}
+
+@media (max-width:1180px){
+  main .wrap{grid-template-columns:minmax(0,1fr)}
+  .side{flex-direction:row; flex-wrap:wrap}
+  .side>*{flex:1 1 320px}
+}
+@media (max-width:860px){
+  /* No room to float the panels over the map: let them stack under it. */
+  #regionCard{position:static; width:auto; max-height:none; border:0;
+    border-top:1px solid var(--rule); box-shadow:none; background:#fff}
+  #regionList{max-height:330px}
+  #map{height:auto; aspect-ratio:.62; min-height:400px}
+  .zoomctl{top:14px; left:14px}
+}
+@media (max-width:720px){
+  .wrap{padding:0 16px}
+  .masthead h1{font-size:22px}
+  .headline{text-align:left}
+  select#subject{min-width:0; width:100%}
+  .field{width:100%}
+  .searchbox input{width:100%}
+  #map{height:62vh}
+  .side{flex-direction:column}
+}
+@media print{
+  .toolbar,.zoomctl,.side{display:none}
+  body{background:#fff}
+}
+</style>
+</head>
+<body>
+
+<div class="topstrip"><div class="wrap">
+  <span>Dati aperti &middot; Piano Nazionale Complementare al PNRR</span>
+  <span>Elaborazione indipendente &middot; non &egrave; una pubblicazione ufficiale del MEF</span>
+</div></div>
+
+<header class="masthead"><div class="wrap">
+  <div>
+    <h1><span>Piano Nazionale Complementare</span>Risorse assegnate ai comuni italiani</h1>
+    <p class="tagline">Gli investimenti del PNC, complementari al PNRR, ripartiti sui 7.894 comuni
+      italiani: importo totale e dettaglio per settore di intervento.</p>
+  </div>
+  <div class="headline">
+    <span class="val" id="hdTotal">&nbsp;</span>
+    <span class="lab" id="hdLabel">Totale risorse PNC</span>
+  </div>
+</div></header>
+
+<nav class="toolbar" aria-label="Controlli della mappa"><div class="wrap">
+  <div class="field">
+    <label for="subject">Settore di intervento</label>
+    <select id="subject"></select>
+  </div>
+  <div class="field">
+    <label id="modeLabel">Unit&agrave; di misura</label>
+    <div class="segmented" role="group" aria-labelledby="modeLabel">
+      <button type="button" id="modeAbs" aria-pressed="true">Valore assoluto</button>
+      <button type="button" id="modePc" aria-pressed="false">Euro per abitante</button>
+    </div>
+  </div>
+  <div class="field searchbox">
+    <label for="search">Cerca un comune</label>
+    <input id="search" type="text" autocomplete="off" placeholder="Es. Bologna" role="combobox"
+           aria-expanded="false" aria-controls="suggest" aria-autocomplete="list">
+    <div class="suggest" id="suggest"><ul role="listbox" aria-label="Comuni"></ul></div>
+  </div>
+  <div class="spacer"></div>
+  <button class="linkbtn" type="button" id="csv">Scarica i dati (CSV)</button>
+</div></nav>
+
+<main><div class="wrap">
+
+  <section class="panel">
+    <div class="mapcaption">
+      <div class="caption-text">
+        <h2 id="mapTitle">Totale risorse PNC</h2>
+        <p id="mapSub">Importi assegnati a ciascun comune.</p>
+      </div>
+      <div class="legend">
+        <div class="ramp" id="ramp">
+          <div class="rampHead"><span id="legendTitle">Importo assegnato</span>
+            <span class="keys"><i style="background:var(--zero)"></i>nessun importo</span></div>
+          <div class="bins" id="bins"></div>
+          <div class="ticks" id="ticks"></div>
+          <div class="cap" id="rampCap"></div>
+        </div>
+      </div>
+    </div>
+    <div class="mapwrap">
+      <canvas id="map" role="img" aria-label="Mappa coropletica dei comuni italiani"></canvas>
+      <div class="loading" id="loading">Costruzione della mappa&hellip;</div>
+      <div class="zoomctl">
+        <button type="button" id="zin" title="Ingrandisci" aria-label="Ingrandisci">+</button>
+        <button type="button" id="zout" title="Riduci" aria-label="Riduci">&minus;</button>
+        <button type="button" id="zreset" class="small" title="Vista iniziale" aria-label="Vista iniziale">IT</button>
+      </div>
+      <div class="card" id="regionCard">
+        <h3>Risorse per regione</h3>
+        <div id="regionList"></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="side">
+    <section class="panel">
+      <header><h2>Sintesi nazionale</h2><p id="sumSub">&nbsp;</p></header>
+      <div class="stats" id="stats"></div>
+    </section>
+
+    <section class="panel">
+      <header><h2>Comune selezionato</h2></header>
+      <div class="detail" id="detail">
+        <p class="empty">Passa sulla mappa per esplorare, fai clic su un comune per vedere
+          la ripartizione completa delle sue risorse.</p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <header><h2 id="rankTitle">Primi 10 comuni</h2><p id="rankSub">&nbsp;</p></header>
+      <ol class="rank" id="rank"></ol>
+    </section>
+  </div>
+
+</div></main>
+
+<footer><div class="wrap">
+  <div>
+    <h3>Fonte dei dati</h3>
+    <p>Importi del Piano Nazionale Complementare al PNRR ripartiti per comune, dal file di
+       lavoro <em>Dataset PNC</em>.</p>
+    <p class="note">Il totale per comune &egrave; il dato di riferimento: la somma dei settori
+       elencati ne copre una parte, la differenza &egrave; riportata come
+       &laquo;Altri interventi non ripartiti&raquo;.</p>
+  </div>
+  <div>
+    <h3>Confini amministrativi</h3>
+    <p>Limiti comunali ISTAT, edizione 1&deg; gennaio 2026, ridistribuiti da
+       <a href="https://github.com/openpolis/geojson-italy">openpolis/geojson-italy</a> (CC-BY).</p>
+    <p class="note">I comuni di Lirio, Castegnero e Nanto, soppressi nel 2026, sono stati
+       accorpati ai rispettivi successori per allinearsi all'elenco usato nei dati.</p>
+  </div>
+  <div>
+    <h3>Nota</h3>
+    <p class="note">Pagina di analisi indipendente. Non &egrave; una pubblicazione del
+       Ministero dell'Economia e delle Finanze n&eacute; della Ragioneria Generale dello Stato.</p>
+    <p class="note" id="buildNote"></p>
+  </div>
+</div></footer>
+
+<div class="tooltip" id="tip" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+const DATA = __PNC_DATA__;
+
+/* ------------------------------------------------------------ decoding */
+const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+const CODE = new Int8Array(128).fill(-1);
+for (let i = 0; i < 64; i++) CODE[B64.charCodeAt(i)] = i;
+
+function decodeArcs(s) {
+  let p = 0;
+  const u = () => {
+    let r = 0, sh = 0, c;
+    do { c = CODE[s.charCodeAt(p++)]; r += (c & 31) * Math.pow(2, sh); sh += 5; } while (c & 32);
+    return r;
+  };
+  const i = () => { const z = u(); return (z & 1) ? -((z + 1) / 2) : z / 2; };
+  const n = u(), arcs = new Array(n);
+  for (let a = 0; a < n; a++) {
+    const len = u(), pts = new Float64Array(len * 2);
+    let x = 0, y = 0;
+    for (let k = 0; k < len; k++) { x += i(); y += i(); pts[k * 2] = x; pts[k * 2 + 1] = y; }
+    arcs[a] = pts;
+  }
+  return arcs;
+}
+
+/* --------------------------------------------------------- projection */
+// Web Mercator on the quantised lon/lat grid, then normalised so that the
+// bounding box of Italy fits a unit square. Screen placement is a plain
+// scale + translate applied by the canvas transform.
+const [SX, SY, TX, TY] = DATA.transform;
+const RAD = Math.PI / 180;
+
+function project(arcs) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const out = new Array(arcs.length);
+  for (let a = 0; a < arcs.length; a++) {
+    const src = arcs[a], dst = new Float64Array(src.length);
+    for (let k = 0; k < src.length; k += 2) {
+      const lon = TX + src[k] * SX, lat = TY + src[k + 1] * SY;
+      const x = lon * RAD;
+      const y = Math.log(Math.tan(Math.PI / 4 + lat * RAD / 2));
+      dst[k] = x; dst[k + 1] = -y;
+      if (x < minX) minX = x; if (x > maxX) maxX = x;
+      if (-y < minY) minY = -y; if (-y > maxY) maxY = -y;
+    }
+    out[a] = dst;
+  }
+  const span = Math.max(maxX - minX, maxY - minY);
+  const ox = minX + (maxX - minX) / 2, oy = minY + (maxY - minY) / 2;
+  for (const dst of out) {
+    for (let k = 0; k < dst.length; k += 2) {
+      dst[k] = (dst[k] - ox) / span + 0.5;
+      dst[k + 1] = (dst[k + 1] - oy) / span + 0.5;
+    }
+  }
+  return { arcs: out, aspect: (maxX - minX) / (maxY - minY),
+           w: (maxX - minX) / span, h: (maxY - minY) / span };
+}
+
+const decoded = decodeArcs(DATA.arcs);
+const P = project(decoded);
+const ARCS = P.arcs;
+
+/* -------------------------------------------------------------- shapes */
+function ringPath(path, ring) {
+  for (let j = 0; j < ring.length; j++) {
+    const idx = ring[j], rev = idx < 0, a = ARCS[rev ? ~idx : idx];
+    const n = a.length / 2;
+    for (let k = 0; k < n; k++) {
+      const p = rev ? (n - 1 - k) : k;
+      const x = a[p * 2], y = a[p * 2 + 1];
+      if (j === 0 && k === 0) path.moveTo(x, y);
+      else if (k > 0 || j === 0) path.lineTo(x, y);
+    }
+  }
+  path.closePath();
+}
+
+const N = DATA.units.length;
+const PATHS = new Array(N);
+const CENTRO = new Float64Array(N * 2);
+const BBOX = new Float64Array(N * 4);
+for (let i = 0; i < N; i++) {
+  const path = new Path2D();
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const poly of DATA.rings[i]) {
+    for (const ring of poly) ringPath(path, ring);
+    for (const ring of poly) {
+      for (const idx of ring) {
+        const a = ARCS[idx < 0 ? ~idx : idx];
+        for (let k = 0; k < a.length; k += 2) {
+          if (a[k] < x0) x0 = a[k]; if (a[k] > x1) x1 = a[k];
+          if (a[k + 1] < y0) y0 = a[k + 1]; if (a[k + 1] > y1) y1 = a[k + 1];
+        }
+      }
+    }
+  }
+  PATHS[i] = path;
+  BBOX[i * 4] = x0; BBOX[i * 4 + 1] = y0; BBOX[i * 4 + 2] = x1; BBOX[i * 4 + 3] = y1;
+  CENTRO[i * 2] = (x0 + x1) / 2; CENTRO[i * 2 + 1] = (y0 + y1) / 2;
+}
+
+function arcsPath(list) {
+  const path = new Path2D();
+  for (const idx of list) {
+    const a = ARCS[idx];
+    path.moveTo(a[0], a[1]);
+    for (let k = 2; k < a.length; k += 2) path.lineTo(a[k], a[k + 1]);
+  }
+  return path;
+}
+const PATH_PROV = arcsPath(DATA.provArcs);
+const PATH_REG = arcsPath(DATA.regArcs);
+const PATH_MUNI = (() => {
+  const path = new Path2D();
+  for (let a = 0; a < ARCS.length; a++) {
+    const arc = ARCS[a];
+    path.moveTo(arc[0], arc[1]);
+    for (let k = 2; k < arc.length; k += 2) path.lineTo(arc[k], arc[k + 1]);
+  }
+  return path;
+})();
+
+/* ---------------------------------------------------------------- data */
+const RAMP = ['#cde2fb', '#9ec5f4', '#6da7ec', '#3987e5', '#256abf', '#184f95', '#0d366b'];
+const ZERO = '#e6eaee';
+const NBINS = RAMP.length;
+
+const TOTAL_SUBJECT = {
+  k: 'totale', l: 'Totale risorse PNC', t: null,
+  dense: DATA.total,
+};
+for (const s of DATA.subjects) {
+  const dense = new Float64Array(N);
+  for (let j = 0; j < s.i.length; j++) dense[s.i[j]] = s.v[j];
+  s.dense = dense;
+}
+const SUBJECTS = [TOTAL_SUBJECT].concat(DATA.subjects);
+const BY_KEY = {};
+for (const s of SUBJECTS) BY_KEY[s.k] = s;
+
+const POP = DATA.pop;
+const NATIONAL_TOTAL = DATA.total.reduce((a, b) => a + b, 0);
+
+/* -------------------------------------------------------- number format */
+const nf = new Intl.NumberFormat('it-IT');
+const nf1 = new Intl.NumberFormat('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const nf2 = new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function euro(v) {
+  if (!v) return '0 €';
+  const a = Math.abs(v);
+  if (a >= 1e9) return nf2.format(v / 1e9) + ' mld €';
+  if (a >= 1e6) return nf1.format(v / 1e6) + ' mln €';
+  if (a >= 1e4) return nf.format(Math.round(v / 1e3)) + ' mila €';
+  return nf.format(Math.round(v)) + ' €';
+}
+function euroPc(v) {
+  if (!v) return '0 €';
+  if (v >= 1000) return nf.format(Math.round(v)) + ' €';
+  if (v >= 10) return nf1.format(v) + ' €';
+  return nf2.format(v) + ' €';
+}
+const fmt = (v) => state.pc ? euroPc(v) : euro(v);
+
+/* --------------------------------------------------------------- state */
+const state = {
+  key: 'totale',
+  pc: false,
+  selected: -1,
+  hover: -1,
+  highlightBin: -1,
+  hoverRegion: null,
+  view: { k: 1, x: 0, y: 0 },
+};
+
+let values = new Float64Array(N);   // values currently mapped
+let bins = new Int8Array(N);        // -1 = zero, 0..NBINS-1
+let breaks = [];
+let binMembers = [];
+let binPaths = [];
+let zeroPath = null;
+let ranking = [];
+
+function recompute() {
+  const s = BY_KEY[state.key];
+  const src = s.dense;
+  for (let i = 0; i < N; i++) {
+    const p = POP[i];
+    values[i] = state.pc ? (p > 0 ? src[i] / p : 0) : src[i];
+  }
+  const nz = [];
+  for (let i = 0; i < N; i++) if (values[i] > 0) nz.push(values[i]);
+  nz.sort((a, b) => a - b);
+  breaks = [];
+  if (nz.length) {
+    for (let b = 1; b < NBINS; b++) {
+      const q = nz[Math.min(nz.length - 1, Math.floor(nz.length * b / NBINS))];
+      if (!breaks.length || q > breaks[breaks.length - 1]) breaks.push(q);
+    }
+  }
+  binMembers = Array.from({ length: NBINS }, () => []);
+  const zeros = [];
+  for (let i = 0; i < N; i++) {
+    const v = values[i];
+    if (v <= 0) { bins[i] = -1; zeros.push(i); continue; }
+    let b = 0;
+    while (b < breaks.length && v >= breaks[b]) b++;
+    bins[i] = b;
+    binMembers[b].push(i);
+  }
+  binMembers.zeros = zeros;
+  binPaths = [];
+  for (let b = 0; b < NBINS; b++) {
+    const path = new Path2D();
+    for (const i of binMembers[b]) path.addPath(PATHS[i]);
+    binPaths.push(path);
+  }
+  zeroPath = new Path2D();
+  for (const i of zeros) zeroPath.addPath(PATHS[i]);
+  ranking = [];
+  for (let i = 0; i < N; i++) if (values[i] > 0) ranking.push(i);
+  ranking.sort((a, b) => values[b] - values[a]);
+}
+
+/* ------------------------------------------------------------ rendering */
+const canvas = document.getElementById('map');
+const ctx = canvas.getContext('2d');
+const pick = document.createElement('canvas');
+const pctx = pick.getContext('2d', { willReadFrequently: true });
+let cssW = 0, cssH = 0, dpr = 1, pickDirty = true;
+
+// The region card occupies the right edge; centre Italy in what is left of
+// the canvas so the map is not pushed against it.
+const RESERVED_RIGHT = 300;
+const WIDE = 812;   // matches the stylesheet breakpoint that unfloats the cards
+function freeCentre() {
+  return (cssW > WIDE ? cssW - RESERVED_RIGHT : cssW) / 2;
+}
+function fitView() {
+  const k = fitK();
+  state.view = { k, x: freeCentre() - k * 0.5, y: cssH / 2 - k * 0.5 };
+}
+
+function resize() {
+  const r = canvas.getBoundingClientRect();
+  if (!r.width) return;
+  const keep = cssW ? { ...state.view } : null;
+  const oldW = cssW, oldH = cssH;
+  cssW = r.width; cssH = r.height;
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.round(cssW * dpr); canvas.height = Math.round(cssH * dpr);
+  pick.width = Math.round(cssW); pick.height = Math.round(cssH);
+  if (keep && oldW) {
+    keep.x += (cssW - oldW) / 2; keep.y += (cssH - oldH) / 2;
+    state.view = keep;
+  } else {
+    fitView();
+  }
+  pickDirty = true;
+  draw();
+}
+
+// Filling one path per class keeps a full repaint at a handful of canvas
+// operations; the stroke in the same colour closes the antialiasing seams
+// between neighbouring municipalities.
+function paintUnits(c, scale, tx, ty, lw) {
+  c.setTransform(scale, 0, 0, scale, tx, ty);
+  c.lineJoin = 'round';
+  c.lineWidth = lw / scale;
+  const groups = [[ZERO, zeroPath, binMembers.zeros.length]];
+  for (let b = 0; b < NBINS; b++) groups.push([RAMP[b], binPaths[b], binMembers[b].length]);
+  for (const [col, path, n] of groups) {
+    if (!n) continue;
+    c.fillStyle = col; c.strokeStyle = col;
+    c.fill(path, 'evenodd'); c.stroke(path);
+  }
+}
+
+function draw() {
+  if (!cssW) return;
+  const { k, x, y } = state.view;
+  const s = k * dpr, tx = x * dpr, ty = y * dpr;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = '#f8fafb';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  if (state.highlightBin >= 0) {
+    // dim everything, then repaint the chosen class
+    ctx.globalAlpha = 0.22;
+    paintUnits(ctx, s, tx, ty, 0.7);
+    ctx.globalAlpha = 1;
+    ctx.setTransform(s, 0, 0, s, tx, ty);
+    ctx.lineWidth = 0.7 / s;
+    ctx.fillStyle = RAMP[state.highlightBin];
+    ctx.strokeStyle = RAMP[state.highlightBin];
+    ctx.fill(binPaths[state.highlightBin], 'evenodd');
+    ctx.stroke(binPaths[state.highlightBin]);
+  } else {
+    paintUnits(ctx, s, tx, ty, 0.7);
+  }
+
+  if (ranking.length && ranking.length <= 600) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#ffffff';
+    for (const i of ranking) {
+      const w = (BBOX[i * 4 + 2] - BBOX[i * 4]) * k, h = (BBOX[i * 4 + 3] - BBOX[i * 4 + 1]) * k;
+      if (Math.max(w, h) > 9) continue;
+      const cx = (CENTRO[i * 2] * k + x) * dpr, cy = (CENTRO[i * 2 + 1] * k + y) * dpr;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 4.1 * dpr, 0, Math.PI * 2);
+      ctx.fillStyle = RAMP[bins[i]];
+      ctx.globalAlpha = state.highlightBin >= 0 && state.highlightBin !== bins[i] ? 0.22 : 1;
+      ctx.fill();
+      ctx.lineWidth = 1.1 * dpr;
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.setTransform(s, 0, 0, s, tx, ty);
+  ctx.lineJoin = 'round';
+  const muniAlpha = Math.max(0, Math.min(0.5, (k / fitK() - 2.2) / 5));
+  if (muniAlpha > 0.01) {
+    ctx.globalAlpha = muniAlpha;
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 0.6 / s;
+    ctx.stroke(PATH_MUNI);
+    ctx.globalAlpha = 1;
+  }
+  ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 0.9 / s;
+  ctx.stroke(PATH_PROV);
+  ctx.strokeStyle = 'rgba(10,39,64,.55)'; ctx.lineWidth = 0.9 / s;
+  ctx.stroke(PATH_REG);
+
+  if (state.hoverRegion) {
+    ctx.strokeStyle = '#0a2740'; ctx.lineWidth = 1.6 / s;
+    for (const i of state.hoverRegion.units) ctx.stroke(PATHS[i]);
+  }
+  for (const i of [state.hover, state.selected]) {
+    if (i < 0) continue;
+    ctx.strokeStyle = i === state.selected ? '#0a2740' : '#ffffff';
+    ctx.lineWidth = (i === state.selected ? 2.6 : 2.0) / s;
+    ctx.stroke(PATHS[i]);
+    if (i === state.selected) {
+      ctx.strokeStyle = '#c9a227'; ctx.lineWidth = 1.2 / s; ctx.stroke(PATHS[i]);
+    }
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+}
+
+let fitCache = 0;
+function fitK() {
+  if (!fitCache) {
+    const w = (cssW > WIDE ? cssW - RESERVED_RIGHT : cssW) - 40;
+    fitCache = Math.min(w / P.w, (cssH - 40) / P.h);
+  }
+  return fitCache;
+}
+
+function drawPick() {
+  const { k, x, y } = state.view;
+  pctx.setTransform(1, 0, 0, 1, 0, 0);
+  pctx.clearRect(0, 0, pick.width, pick.height);
+  pctx.setTransform(k, 0, 0, k, x, y);
+  pctx.lineJoin = 'round';
+  pctx.lineWidth = 0.7 / k;
+  for (let i = 0; i < N; i++) {
+    const id = i + 1;
+    const col = 'rgb(' + (id & 255) + ',' + ((id >> 8) & 255) + ',' + ((id >> 16) & 255) + ')';
+    pctx.fillStyle = col; pctx.strokeStyle = col;
+    pctx.fill(PATHS[i], 'evenodd'); pctx.stroke(PATHS[i]);
+  }
+  pctx.setTransform(1, 0, 0, 1, 0, 0);
+  pickDirty = false;
+}
+
+function hitTest(px, py) {
+  if (ranking.length && ranking.length <= 600) {
+    const { k, x, y } = state.view;
+    let best = -1, bestD = 36;
+    for (const i of ranking) {
+      const w = (BBOX[i * 4 + 2] - BBOX[i * 4]) * k, h = (BBOX[i * 4 + 3] - BBOX[i * 4 + 1]) * k;
+      if (Math.max(w, h) > 9) continue;
+      const dx = CENTRO[i * 2] * k + x - px, dy = CENTRO[i * 2 + 1] * k + y - py;
+      const d = dx * dx + dy * dy;
+      if (d < bestD) { bestD = d; best = i; }
+    }
+    if (best >= 0) return best;
+  }
+  if (pickDirty) drawPick();
+  if (px < 0 || py < 0 || px >= pick.width || py >= pick.height) return -1;
+  const d = pctx.getImageData(px, py, 1, 1).data;
+  if (!d[3]) return -1;
+  const id = d[0] | (d[1] << 8) | (d[2] << 16);
+  return id > 0 && id <= N ? id - 1 : -1;
+}
+
+/* ------------------------------------------------------------ interaction */
+let dragging = null;
+canvas.addEventListener('pointerdown', (e) => {
+  canvas.setPointerCapture(e.pointerId);
+  dragging = { x: e.clientX, y: e.clientY, vx: state.view.x, vy: state.view.y, moved: 0 };
+  canvas.classList.add('dragging');
+});
+canvas.addEventListener('pointermove', (e) => {
+  const r = canvas.getBoundingClientRect();
+  if (dragging) {
+    const dx = e.clientX - dragging.x, dy = e.clientY - dragging.y;
+    dragging.moved = Math.max(dragging.moved, Math.abs(dx) + Math.abs(dy));
+    state.view.x = dragging.vx + dx; state.view.y = dragging.vy + dy;
+    pickDirty = true; draw(); hideTip();
+    return;
+  }
+  const i = hitTest(Math.round(e.clientX - r.left), Math.round(e.clientY - r.top));
+  if (i !== state.hover) { state.hover = i; draw(); }
+  if (i >= 0) showTip(i, e.clientX, e.clientY); else hideTip();
+});
+canvas.addEventListener('pointerup', (e) => {
+  canvas.classList.remove('dragging');
+  const wasDrag = dragging && dragging.moved > 4;
+  dragging = null;
+  if (wasDrag) return;
+  const r = canvas.getBoundingClientRect();
+  const i = hitTest(Math.round(e.clientX - r.left), Math.round(e.clientY - r.top));
+  select(i);
+});
+canvas.addEventListener('pointerleave', () => {
+  if (state.hover !== -1) { state.hover = -1; draw(); }
+  hideTip();
+});
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const r = canvas.getBoundingClientRect();
+  zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-e.deltaY * 0.0015));
+}, { passive: false });
+
+function zoomAt(cx, cy, factor) {
+  const v = state.view;
+  const k = Math.max(fitK() * 0.9, Math.min(fitK() * 260, v.k * factor));
+  const f = k / v.k;
+  v.x = cx - (cx - v.x) * f;
+  v.y = cy - (cy - v.y) * f;
+  v.k = k;
+  pickDirty = true;
+  draw();
+}
+document.getElementById('zin').onclick = () => zoomAt(freeCentre(), cssH / 2, 1.6);
+document.getElementById('zout').onclick = () => zoomAt(freeCentre(), cssH / 2, 1 / 1.6);
+document.getElementById('zreset').onclick = () => { fitCache = 0; const v = state.view; fitView(); const t = state.view; state.view = v; animateTo(t); };
+
+function zoomToBox(x0, y0, x1, y1, pad) {
+  const w = Math.max(x1 - x0, 0.0025), h = Math.max(y1 - y0, 0.0025);
+  const m = pad || 1.25;
+  const avail = cssW > WIDE ? cssW - RESERVED_RIGHT : cssW;
+  const k = Math.min(fitK() * 220, Math.min(avail / (w * m), cssH / (h * m)));
+  animateTo({ k, x: freeCentre() - k * (x0 + x1) / 2, y: cssH / 2 - k * (y0 + y1) / 2 });
+}
+function zoomToUnit(i) {
+  zoomToBox(BBOX[i * 4], BBOX[i * 4 + 1], BBOX[i * 4 + 2], BBOX[i * 4 + 3], 4.5);
+}
+let anim = null;
+function animateTo(target) {
+  const from = { ...state.view }, t0 = performance.now(), dur = 420;
+  if (anim) cancelAnimationFrame(anim);
+  const step = (t) => {
+    const p = Math.min(1, (t - t0) / dur);
+    const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+    state.view = {
+      k: from.k * Math.pow(target.k / from.k, e),
+      x: from.x + (target.x - from.x) * e,
+      y: from.y + (target.y - from.y) * e,
+    };
+    draw();
+    if (p < 1) anim = requestAnimationFrame(step);
+    else { anim = null; pickDirty = true; }
+  };
+  anim = requestAnimationFrame(step);
+}
+
+/* ---------------------------------------------------------------- tooltip */
+const tip = document.getElementById('tip');
+function showTip(i, cx, cy) {
+  const u = DATA.units[i];
+  const s = BY_KEY[state.key];
+  const abs = s.dense[i], p = POP[i];
+  tip.innerHTML =
+    '<b>' + esc(u[0]) + '</b><div class="sub">' + esc(u[2]) + ' (' + esc(u[1]) + ') · ' + esc(u[3]) + '</div>' +
+    '<div class="row"><span>' + esc(s.l) + '</span><span>' + euro(abs) + '</span></div>' +
+    '<div class="row"><span>per abitante</span><span>' + euroPc(p > 0 ? abs / p : 0) + '</span></div>' +
+    (state.key === 'totale' ? '' :
+      '<div class="row"><span>totale PNC</span><span>' + euro(DATA.total[i]) + '</span></div>');
+  tip.classList.add('on');
+  const r = tip.getBoundingClientRect();
+  let x = cx + 16, y = cy + 16;
+  if (x + r.width > window.innerWidth - 8) x = cx - r.width - 16;
+  if (y + r.height > window.innerHeight - 8) y = cy - r.height - 16;
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+}
+function hideTip() { tip.classList.remove('on'); }
+function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+/* ------------------------------------------------------------------- UI */
+const selSubject = document.getElementById('subject');
+(function buildSelect() {
+  const top = document.createElement('option');
+  top.value = 'totale'; top.textContent = 'Totale risorse PNC';
+  selSubject.appendChild(top);
+  let group = null, theme = null;
+  for (const s of DATA.subjects) {
+    if (s.t !== theme) { theme = s.t; group = document.createElement('optgroup'); group.label = theme; selSubject.appendChild(group); }
+    const o = document.createElement('option');
+    o.value = s.k;
+    const financed = s.i.length;
+    o.textContent = s.l + (financed ? '' : ' (nessun importo nei dati)');
+    if (!financed) o.disabled = true;
+    group.appendChild(o);
+  }
+})();
+selSubject.onchange = () => { state.key = selSubject.value; state.highlightBin = -1; refresh(); };
+
+const bAbs = document.getElementById('modeAbs'), bPc = document.getElementById('modePc');
+bAbs.onclick = () => { if (state.pc) { state.pc = false; state.highlightBin = -1; refresh(); } };
+bPc.onclick = () => { if (!state.pc) { state.pc = true; state.highlightBin = -1; refresh(); } };
+
+function select(i) {
+  state.selected = i;
+  renderDetail();
+  renderRank();
+  draw();
+}
+
+function renderLegend() {
+  const binsEl = document.getElementById('bins');
+  const ticksEl = document.getElementById('ticks');
+  binsEl.innerHTML = ''; ticksEl.innerHTML = '';
+  const used = breaks.length + 1;
+  for (let b = 0; b < used; b++) {
+    const d = document.createElement('div');
+    d.style.background = RAMP[b];
+    const lo = b === 0 ? 0 : breaks[b - 1];
+    d.title = 'Classe ' + (b + 1) + ' · da ' + fmt(lo) +
+      (b < breaks.length ? ' a ' + fmt(breaks[b]) : ' in su') +
+      ' · ' + nf.format(binMembers[b].length) + ' comuni';
+    d.onmouseenter = () => { state.highlightBin = b; syncRamp(); draw(); };
+    d.onmouseleave = () => { state.highlightBin = -1; syncRamp(); draw(); };
+    binsEl.appendChild(d);
+    const t = document.createElement('span');
+    // one label every other class boundary: six labels never fit legibly
+    t.textContent = b < breaks.length && (used - 1 - b) % 2 === 0 ? fmt(breaks[b]) : '';
+    if (!t.textContent) t.className = 'hide';
+    ticksEl.appendChild(t);
+  }
+  const financed = ranking.length;
+  document.getElementById('rampCap').textContent = used +
+    ' classi di pari numerosità su ' + nf.format(financed) + ' comuni finanziati' +
+    (financed ? ', fino a ' + fmt(values[ranking[0]]) + '.' : '.') +
+    ' Passa sulle classi per isolarle.';
+}
+function syncRamp() {
+  const ramp = document.getElementById('ramp');
+  const kids = document.getElementById('bins').children;
+  ramp.classList.toggle('muted', state.highlightBin >= 0);
+  for (let b = 0; b < kids.length; b++) kids[b].classList.toggle('on', b === state.highlightBin);
+}
+
+function renderStats() {
+  const s = BY_KEY[state.key];
+  let sum = 0, financed = 0;
+  for (let i = 0; i < N; i++) { const v = s.dense[i]; sum += v; if (v > 0) financed++; }
+  const pop = POP.reduce((a, b) => a + b, 0);
+  const cells = [
+    ['Risorse del settore', euro(sum)],
+    ['Quota sul totale PNC', nf1.format(100 * sum / NATIONAL_TOTAL) + '%'],
+    ['Comuni con un importo', nf.format(financed) + ' <small>su ' + nf.format(N) + '</small>'],
+    ['Media per abitante', euroPc(sum / pop)],
+  ];
+  document.getElementById('stats').innerHTML = cells.map(
+    ([k, v]) => '<div><div class="k">' + k + '</div><div class="v">' + v + '</div></div>').join('');
+  document.getElementById('sumSub').textContent = s.l;
+  document.getElementById('hdTotal').textContent = euro(sum);
+  document.getElementById('hdLabel').textContent = state.key === 'totale' ? 'Totale risorse PNC' : s.l;
+}
+
+let rankLimit = 10;
+function renderRank() {
+  const list = ranking.slice(0, rankLimit);
+  const max = ranking.length ? values[ranking[0]] : 1;
+  const el = document.getElementById('rank');
+  el.innerHTML = list.map((i, n) => {
+    const u = DATA.units[i];
+    return '<li data-i="' + i + '" class="' + (i === state.selected ? 'sel' : '') + '">' +
+      '<span class="n">' + (n + 1) + '</span>' +
+      '<span class="nm">' + esc(u[0]) + ' <em>' + esc(u[1]) + '</em></span>' +
+      '<span class="vv">' + fmt(values[i]) + '</span>' +
+      '<span class="bar" style="width:' + (100 * values[i] / max).toFixed(1) + '%"></span></li>';
+  }).join('') + (rankLimit < ranking.length
+    ? '<li style="grid-template-columns:1fr"><button class="linkbtn" id="more">Mostra i primi ' +
+      Math.min(50, ranking.length) + '</button></li>' : '');
+  for (const li of el.querySelectorAll('li[data-i]')) {
+    li.onclick = () => { const i = +li.dataset.i; select(i); zoomToUnit(i); };
+  }
+  const more = document.getElementById('more');
+  if (more) more.onclick = () => { rankLimit = 50; renderRank(); };
+  document.getElementById('rankTitle').textContent = 'Primi ' + list.length + ' comuni';
+  document.getElementById('rankSub').textContent =
+    (state.pc ? 'Per abitante · ' : 'Valore assoluto · ') + BY_KEY[state.key].l;
+}
+
+function renderDetail() {
+  const el = document.getElementById('detail');
+  const i = state.selected;
+  if (i < 0) {
+    el.innerHTML = '<p class="empty">Passa sulla mappa per esplorare, fai clic su un comune ' +
+      'per vedere la ripartizione completa delle sue risorse.</p>';
+    return;
+  }
+  const u = DATA.units[i], pop = POP[i], tot = DATA.total[i];
+  const rank = ranking.indexOf(i);
+  const parts = DATA.subjects
+    .map((s) => ({ l: s.l, k: s.k, v: s.dense[i] }))
+    .filter((p) => p.v > 0)
+    .sort((a, b) => b.v - a.v);
+  const max = parts.length ? parts[0].v : 1;
+  el.innerHTML =
+    '<h3>' + esc(u[0]) + '</h3>' +
+    '<p class="place">' + esc(u[2]) + ' (' + esc(u[1]) + ') · ' + esc(u[3]) +
+      ' · ' + nf.format(pop) + ' abitanti · ISTAT ' + esc(u[4]) + '</p>' +
+    '<div class="big">' +
+      '<div><div class="k">Totale PNC</div><div class="v">' + euro(tot) + '</div></div>' +
+      '<div><div class="k">Per abitante</div><div class="v">' + euroPc(pop ? tot / pop : 0) + '</div></div>' +
+      (rank >= 0 ? '<div><div class="k">Posizione</div><div class="v">' + nf.format(rank + 1) +
+        '<small> / ' + nf.format(ranking.length) + '</small></div></div>' : '') +
+    '</div>' +
+    (parts.length
+      ? '<ul class="brk">' + parts.map((p) =>
+          '<li class="' + (p.k === state.key ? 'cur' : '') + '"><div class="t"><span>' + esc(p.l) +
+          '</span><span>' + euro(p.v) + '</span></div><div class="track"><i style="width:' +
+          (100 * p.v / max).toFixed(1) + '%"></i></div></li>').join('') + '</ul>'
+      : '<p class="brk none">Nessun importo ripartito per settore.</p>');
+}
+
+/* ---------------------------------------------------------------- regions */
+const REGIONS = (() => {
+  const by = new Map();
+  for (let i = 0; i < N; i++) {
+    const name = DATA.units[i][3];
+    let r = by.get(name);
+    if (!r) by.set(name, r = { name, units: [], x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity });
+    r.units.push(i);
+    r.x0 = Math.min(r.x0, BBOX[i * 4]); r.y0 = Math.min(r.y0, BBOX[i * 4 + 1]);
+    r.x1 = Math.max(r.x1, BBOX[i * 4 + 2]); r.y1 = Math.max(r.y1, BBOX[i * 4 + 3]);
+  }
+  return [...by.values()];
+})();
+
+function renderRegions() {
+  const s = BY_KEY[state.key];
+  for (const r of REGIONS) {
+    let sum = 0, pop = 0;
+    for (const i of r.units) { sum += s.dense[i]; pop += POP[i]; }
+    r.sum = sum; r.pop = pop;
+    r.val = state.pc ? (pop ? sum / pop : 0) : sum;
+  }
+  const sorted = REGIONS.slice().sort((a, b) => b.val - a.val);
+  const max = sorted.length ? sorted[0].val || 1 : 1;
+  const el = document.getElementById('regionList');
+  el.innerHTML = sorted.map((r) =>
+    '<div class="regrow" data-r="' + esc(r.name) + '"><span class="nm">' + esc(r.name) +
+    '</span><span class="vv">' + fmt(r.val) + '</span>' +
+    '<span class="track"><i style="width:' + (100 * r.val / max).toFixed(1) + '%"></i></span></div>').join('');
+  for (const row of el.children) {
+    const r = REGIONS.find((x) => x.name === row.dataset.r);
+    row.onclick = () => zoomToBox(r.x0, r.y0, r.x1, r.y1);
+    row.onmouseenter = () => { state.hoverRegion = r; syncRegions(); draw(); };
+    row.onmouseleave = () => { state.hoverRegion = null; syncRegions(); draw(); };
+  }
+  syncRegions();
+}
+function syncRegions() {
+  for (const row of document.getElementById('regionList').children)
+    row.classList.toggle('on', !!state.hoverRegion && row.dataset.r === state.hoverRegion.name);
+}
+
+/* ----------------------------------------------------------------- search */
+const search = document.getElementById('search');
+const suggest = document.getElementById('suggest');
+const suggestList = suggest.querySelector('ul');
+const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/['`’]/g, ' ');
+const NAMES = DATA.units.map((u) => norm(u[0]));
+let sugIndex = -1, sugItems = [];
+
+function runSearch() {
+  const q = norm(search.value.trim());
+  sugItems = [];
+  if (q.length >= 2) {
+    const starts = [], contains = [];
+    for (let i = 0; i < N && starts.length + contains.length < 60; i++) {
+      const n = NAMES[i];
+      if (n.startsWith(q)) starts.push(i);
+      else if (n.includes(q)) contains.push(i);
+    }
+    sugItems = starts.concat(contains).slice(0, 8);
+  }
+  sugIndex = -1;
+  suggestList.innerHTML = sugItems.map((i, n) =>
+    '<li role="option" id="sug' + n + '" data-i="' + i + '"><span>' + esc(DATA.units[i][0]) +
+    '</span><em>' + esc(DATA.units[i][1]) + ' · ' + fmt(values[i]) + '</em></li>').join('');
+  suggest.classList.toggle('open', sugItems.length > 0);
+  search.setAttribute('aria-expanded', sugItems.length > 0 ? 'true' : 'false');
+  for (const li of suggestList.children) li.onclick = () => pickSuggest(+li.dataset.i);
+}
+function pickSuggest(i) {
+  search.value = DATA.units[i][0];
+  suggest.classList.remove('open');
+  search.setAttribute('aria-expanded', 'false');
+  select(i); zoomToUnit(i);
+}
+search.addEventListener('input', runSearch);
+search.addEventListener('keydown', (e) => {
+  if (!sugItems.length) return;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    sugIndex = (sugIndex + (e.key === 'ArrowDown' ? 1 : sugItems.length)) % sugItems.length;
+    for (let n = 0; n < suggestList.children.length; n++)
+      suggestList.children[n].setAttribute('aria-selected', n === sugIndex ? 'true' : 'false');
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    pickSuggest(sugItems[sugIndex >= 0 ? sugIndex : 0]);
+  } else if (e.key === 'Escape') {
+    suggest.classList.remove('open');
+  }
+});
+document.addEventListener('click', (e) => {
+  if (!suggest.contains(e.target) && e.target !== search) suggest.classList.remove('open');
+});
+
+/* -------------------------------------------------------------------- CSV */
+document.getElementById('csv').onclick = () => {
+  const cols = ['codice_istat', 'comune', 'provincia', 'regione', 'popolazione', 'totale_pnc']
+    .concat(DATA.subjects.map((s) => s.k.toLowerCase().replace(/[^a-z0-9]+/g, '_')));
+  const lines = [cols.join(';')];
+  for (let i = 0; i < N; i++) {
+    const u = DATA.units[i];
+    const row = [u[4], u[0], u[2], u[3], POP[i], DATA.total[i]]
+      .concat(DATA.subjects.map((s) => s.dense[i]));
+    lines.push(row.map((v) => typeof v === 'string' && /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v).join(';'));
+  }
+  const blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'pnc-comuni.csv';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+};
+
+/* ------------------------------------------------------------------ boot */
+function refresh() {
+  recompute();
+  renderLegend();
+  syncRamp();
+  renderRegions();
+  renderStats();
+  rankLimit = 10;
+  renderRank();
+  renderDetail();
+  const s = BY_KEY[state.key];
+  document.getElementById('mapTitle').textContent = s.l;
+  document.getElementById('legendTitle').textContent =
+    state.pc ? 'Euro per abitante' : 'Importo assegnato';
+  document.getElementById('mapSub').textContent = state.pc
+    ? 'Euro per abitante. Le classi raggruppano in parti uguali i comuni con un importo maggiore di zero.'
+    : 'Importo assegnato a ciascun comune. Le classi raggruppano in parti uguali i comuni con un importo maggiore di zero.';
+  bAbs.setAttribute('aria-pressed', String(!state.pc));
+  bPc.setAttribute('aria-pressed', String(state.pc));
+  pickDirty = true;
+  draw();
+}
+
+document.getElementById('buildNote').textContent =
+  nf.format(N) + ' comuni · ' + euro(NATIONAL_TOTAL) + ' di risorse mappate.';
+
+window.addEventListener('resize', () => { fitCache = 0; resize(); });
+refresh();
+resize();
+document.getElementById('loading').style.display = 'none';
+</script>
+</body>
+</html>
