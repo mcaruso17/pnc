@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from xlsx_reader import rows  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-HTML = os.path.join(ROOT, 'mappa-pnc.html')
+HTML = os.path.join(ROOT, 'index.html')
 XLSX = os.path.join(ROOT, 'Dataset PNC.xlsx')
 
 html = open(HTML, encoding='utf-8').read()
