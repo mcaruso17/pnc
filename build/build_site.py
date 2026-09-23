@@ -99,6 +99,35 @@ def encode_arcs(arcs):
     return ''.join(out)
 
 
+def read_rail(path, scale, translate):
+    """The railway layer, re-quantised onto the boundary grid and encoded.
+
+    `build/extract_rail.py` already snapped these coordinates to this grid, so
+    rounding here returns the integers it wrote rather than losing precision.
+    Ordinary lines come first, high-speed ones after, and the returned index
+    says where the split falls so the page can stroke them differently.
+    """
+    if not os.path.exists(path):
+        return None, 0, 0
+    gj = json.load(open(path, encoding='utf-8'))
+    groups = {0: [], 1: []}
+    for f in gj['features']:
+        pts = [(round((lon - translate[0]) / scale[0]),
+                round((lat - translate[1]) / scale[1]))
+               for lon, lat in f['geometry']['coordinates']]
+        dedup = [p for i, p in enumerate(pts) if i == 0 or p != pts[i - 1]]
+        if len(dedup) < 2:
+            continue
+        # encode_arcs writes its points verbatim because TopoJSON already
+        # stores arcs as deltas, and the page's decoder accumulates them. This
+        # geometry is absolute, so it has to be differenced here or every line
+        # after the first vertex lands somewhere else entirely.
+        delta = [dedup[0]] + [(x - px, y - py) for (px, py), (x, y)
+                              in zip(dedup, dedup[1:])]
+        groups[1 if f['properties'].get('hs') else 0].append(delta)
+    return encode_arcs(groups[0] + groups[1]), len(groups[0]), len(groups[1])
+
+
 def flat_arcs(node, found=None):
     """Every arc index in an arbitrarily nested arc structure."""
     if found is None:
@@ -128,8 +157,9 @@ def main():
         os.path.dirname(ROOT), 'openpolis', 'geojson-italy', 'topojson',
         'limits_IT_municipalities.topo.json'))
     ap.add_argument('--xlsx', default=os.path.join(ROOT, 'Dataset PNC.xlsx'))
+    ap.add_argument('--rail', default=os.path.join(ROOT, 'data', 'ferrovie.geojson'))
     ap.add_argument('--template', default=os.path.join(ROOT, 'build', 'template.html'))
-    ap.add_argument('--out', default=os.path.join(ROOT, 'mappa-pnc.html'))
+    ap.add_argument('--out', default=os.path.join(ROOT, 'index.html'))
     args = ap.parse_args()
 
     # ---------------------------------------------------------------- data
@@ -232,9 +262,15 @@ def main():
     subjects.append({'k': 'altro', 'l': 'Altri interventi non ripartiti',
                      't': 'Voce residuale', 'i': other_idx, 'v': other_val})
 
+    rail_arcs, rail_split, rail_hs = read_rail(args.rail, scale, translate)
+    if rail_arcs is None:
+        print('rail: %s missing, page built without the railway layer' % args.rail)
+
     payload = {
         'transform': [scale[0], scale[1], translate[0], translate[1]],
         'arcs': encode_arcs(topo['arcs']),
+        'railArcs': rail_arcs,
+        'railSplit': rail_split,
         'provArcs': sorted(prov_arcs),
         'regArcs': sorted(reg_arcs),
         'units': [[units[c]['name'], units[c]['prov_acr'], units[c]['prov'],
@@ -254,6 +290,9 @@ def main():
         f.write(html)
 
     print('arcs        %8.2f MB' % (len(payload['arcs']) / 1e6))
+    if rail_arcs:
+        print('rail        %8.2f MB  %d linee, di cui %d in alta velocita'
+              % (len(rail_arcs) / 1e6, rail_split + rail_hs, rail_hs))
     print('rings       %8.2f MB' % (len(json.dumps(payload['rings'])) / 1e6))
     print('values      %8.2f MB' % (len(json.dumps(payload['subjects'])) / 1e6))
     print('written     %8.2f MB  %s' % (os.path.getsize(args.out) / 1e6, args.out))

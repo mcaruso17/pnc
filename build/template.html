@@ -257,6 +257,13 @@ footer a{color:#9fc4e8}
            aria-expanded="false" aria-controls="suggest" aria-autocomplete="list">
     <div class="suggest" id="suggest"><ul role="listbox" aria-label="Comuni"></ul></div>
   </div>
+  <div class="field">
+    <label id="railLabel">Rete ferroviaria</label>
+    <div class="segmented" role="group" aria-labelledby="railLabel">
+      <button type="button" id="railOff" aria-pressed="true">Nascondi</button>
+      <button type="button" id="railOn" aria-pressed="false">Mostra</button>
+    </div>
+  </div>
   <div class="spacer"></div>
   <button class="linkbtn" type="button" id="csv">Scarica i dati (CSV)</button>
 </div></nav>
@@ -333,6 +340,15 @@ footer a{color:#9fc4e8}
        accorpati ai rispettivi successori per allinearsi all'elenco usato nei dati.</p>
   </div>
   <div>
+    <h3>Rete ferroviaria</h3>
+    <p>Tracciati da <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>
+       (&copy; contributori OSM, ODbL), estratto Italia del 23 settembre 2026.</p>
+    <p class="note">Solo le linee di corsa in esercizio, a scartamento ordinario e ridotto:
+       sono esclusi i binari di stazione e di scalo, le linee dismesse, in costruzione e in
+       progetto, le reti tranviarie e metropolitane. In rosso l'alta velocit&agrave;.
+       La geometria &egrave; semplificata a circa 15 m, la stessa risoluzione dei confini.</p>
+  </div>
+  <div>
     <h3>Nota</h3>
     <p class="note">Pagina di analisi indipendente. Non &egrave; una pubblicazione del
        Ministero dell'Economia e delle Finanze n&eacute; della Ragioneria Generale dello Stato.</p>
@@ -376,7 +392,10 @@ function decodeArcs(s) {
 const [SX, SY, TX, TY] = DATA.transform;
 const RAD = Math.PI / 180;
 
-function project(arcs) {
+// `ref` is a previous result: passing it normalises a second set of arcs with
+// the framing already derived from the boundaries, so the layers line up
+// instead of each fitting its own bounding box to the unit square.
+function project(arcs, ref) {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   const out = new Array(arcs.length);
   for (let a = 0; a < arcs.length; a++) {
@@ -391,8 +410,9 @@ function project(arcs) {
     }
     out[a] = dst;
   }
-  const span = Math.max(maxX - minX, maxY - minY);
-  const ox = minX + (maxX - minX) / 2, oy = minY + (maxY - minY) / 2;
+  const span = ref ? ref.span : Math.max(maxX - minX, maxY - minY);
+  const ox = ref ? ref.ox : minX + (maxX - minX) / 2;
+  const oy = ref ? ref.oy : minY + (maxY - minY) / 2;
   for (const dst of out) {
     for (let k = 0; k < dst.length; k += 2) {
       dst[k] = (dst[k] - ox) / span + 0.5;
@@ -400,7 +420,7 @@ function project(arcs) {
     }
   }
   return { arcs: out, aspect: (maxX - minX) / (maxY - minY),
-           w: (maxX - minX) / span, h: (maxY - minY) / span };
+           w: (maxX - minX) / span, h: (maxY - minY) / span, ox: ox, oy: oy, span: span };
 }
 
 const decoded = decodeArcs(DATA.arcs);
@@ -455,6 +475,24 @@ function arcsPath(list) {
   }
   return path;
 }
+/* ------------------------------------------------------------- ferrovie */
+// Two paths rather than one, so the high-speed lines can be stroked over the
+// rest. Ordinary lines come first in the payload, high-speed after railSplit.
+const RAIL = (() => {
+  if (!DATA.railArcs) return null;
+  const arcs = project(decodeArcs(DATA.railArcs), P).arcs;
+  const build = (from, to) => {
+    const path = new Path2D();
+    for (let a = from; a < to; a++) {
+      const arc = arcs[a];
+      path.moveTo(arc[0], arc[1]);
+      for (let k = 2; k < arc.length; k += 2) path.lineTo(arc[k], arc[k + 1]);
+    }
+    return path;
+  };
+  return { ord: build(0, DATA.railSplit), hs: build(DATA.railSplit, arcs.length) };
+})();
+
 const PATH_PROV = arcsPath(DATA.provArcs);
 const PATH_REG = arcsPath(DATA.regArcs);
 const PATH_MUNI = (() => {
@@ -517,6 +555,7 @@ const state = {
   hover: -1,
   highlightBin: -1,
   hoverRegion: null,
+  rail: false,          // the railway overlay is opt-in: see the toolbar toggle
   view: { k: 1, x: 0, y: 0 },
 };
 
@@ -678,6 +717,21 @@ function draw() {
   ctx.stroke(PATH_PROV);
   ctx.strokeStyle = 'rgba(10,39,64,.55)'; ctx.lineWidth = 0.9 / s;
   ctx.stroke(PATH_REG);
+
+  // Railways sit above the boundaries but below the hover and selection
+  // outlines, so picking a municipality still reads clearly through them.
+  if (RAIL && state.rail) {
+    ctx.lineCap = 'round';
+    // A light casing under the dark line keeps it legible over the darkest
+    // bins of the ramp as well as over the empty grey.
+    ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 2.6 / s;
+    ctx.stroke(RAIL.ord); ctx.stroke(RAIL.hs);
+    ctx.strokeStyle = 'rgba(12,12,12,.92)'; ctx.lineWidth = 0.95 / s;
+    ctx.stroke(RAIL.ord);
+    ctx.strokeStyle = '#c0261c'; ctx.lineWidth = 1.35 / s;
+    ctx.stroke(RAIL.hs);
+    ctx.lineCap = 'butt';
+  }
 
   if (state.hoverRegion) {
     ctx.strokeStyle = '#0a2740'; ctx.lineWidth = 1.6 / s;
@@ -868,6 +922,25 @@ selSubject.onchange = () => { state.key = selSubject.value; state.highlightBin =
 const bAbs = document.getElementById('modeAbs'), bPc = document.getElementById('modePc');
 bAbs.onclick = () => { if (state.pc) { state.pc = false; state.highlightBin = -1; refresh(); } };
 bPc.onclick = () => { if (!state.pc) { state.pc = true; state.highlightBin = -1; refresh(); } };
+
+// The railway overlay only changes what is painted, so it redraws rather than
+// going through refresh(): no class break, ranking or legend depends on it.
+const bRailOff = document.getElementById('railOff'), bRailOn = document.getElementById('railOn');
+function setRail(on) {
+  if (state.rail === on) return;
+  state.rail = on;
+  bRailOff.setAttribute('aria-pressed', String(!on));
+  bRailOn.setAttribute('aria-pressed', String(on));
+  draw();
+}
+bRailOff.onclick = () => setRail(false);
+bRailOn.onclick = () => setRail(true);
+if (!RAIL) {
+  // Built without data/ferrovie.geojson: offering a toggle that does nothing
+  // would be worse than not offering it.
+  bRailOff.disabled = bRailOn.disabled = true;
+  document.getElementById('railLabel').title = 'Layer non incluso in questa build';
+}
 
 function select(i) {
   state.selected = i;
