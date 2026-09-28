@@ -10,7 +10,7 @@ assegnati ai 7.894 comuni italiani: totale e dettaglio per settore di intervento
 ## Cosa contiene la pagina
 
 - Coropleta a livello comunale, con zoom e trascinamento, per il totale PNC o per
-  ciascuno dei 21 settori, piu' la voce residuale «Altri interventi non ripartiti».
+  ciascuno dei 14 settori, piu' la voce residuale «Altri interventi non ripartiti».
 - Commutatore valore assoluto / euro per abitante.
 - 7 classi di pari numerosita' calcolate sui soli comuni con un importo maggiore di
   zero; i comuni senza importo restano in grigio neutro.
@@ -28,7 +28,7 @@ assegnati ai 7.894 comuni italiani: totale e dettaglio per settore di intervento
 | Importi | `Dataset PNC.xlsx`, una riga per comune, codice ISTAT a 6 cifre |
 | Confini | limiti comunali ISTAT, edizione 1&deg; gennaio 2026, via [openpolis/geojson-italy](https://github.com/openpolis/geojson-italy) (CC-BY) |
 | Ferrovie | `data/ferrovie.geojson`, tracciati OpenStreetMap (ODbL), estratto Italia del 23 settembre 2026 |
-| Totale mappato | 15,79 mld di euro su 7.894 comuni |
+| Totale mappato | 15,81 mld di euro su 7.894 comuni |
 
 ### Nota sulla rete ferroviaria
 
@@ -53,11 +53,15 @@ pagina e' di 0,18 MB, contro 0,58 MB che sarebbero serviti senza semplificare.
   torna a 58,94 milioni di abitanti. I valori pro capite sono quindi ricalcolati nel
   browser e coincidono con le colonne `pc` del file.
 - **Totale contro somma dei settori.** Il totale di ogni comune e' sempre maggiore o
-  uguale alla somma dei 21 settori; a livello nazionale i settori coprono l'89,1% del
-  totale. Il residuo (1,71 mld, 10,9%) e' esposto come «Altri interventi non
-  ripartiti» invece di essere taciuto.
-- **Settori vuoti.** `Digitalizzazione PA` e `Ricerca sanitaria` sono a zero per tutti
-  i comuni. Restano nel menu, disattivati, cosi' l'assenza e' visibile.
+  uguale alla somma dei settori elencati; a livello nazionale i settori coprono il
+  91,7% del totale. Il residuo (1,31 mld, 8,3%) e' esposto come «Altri interventi
+  non ripartiti» invece di essere taciuto.
+- **Elenco dei settori.** I settori non sono piu' cablati nello script: si ricavano
+  dalle colonne del workbook, ordinati e raggruppati secondo `LABELS` in
+  `build/build_site.py`. Una colonna che il workbook toglie sparisce dalla pagina;
+  una colonna nuova senza etichetta ferma la build con un messaggio esplicito,
+  invece di essere ignorata in silenzio. Le colonne a zero per tutti i comuni
+  restano nel menu disattivate.
 - **Allineamento dei codici ISTAT.** I codici del dataset corrispondono esattamente
   all'elenco dei comuni in vigore dal 21 febbraio 2026 (7.894 su 7.894). Il file dei
   confini e' l'edizione 1&deg; gennaio 2026 (7.896 comuni), quindi tre poligoni
