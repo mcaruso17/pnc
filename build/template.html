@@ -230,8 +230,9 @@ footer a{color:#9fc4e8}
 <header class="masthead"><div class="wrap">
   <div>
     <h1><span>Piano Nazionale Complementare</span>Risorse assegnate ai comuni italiani</h1>
-    <p class="tagline">Gli investimenti del PNC, complementari al PNRR, ripartiti sui 7.894 comuni
-      italiani: importo totale e dettaglio per settore di intervento.</p>
+    <p class="tagline">Gli investimenti del PNC, complementari al PNRR, ripartiti sui
+      <span id="unitCount">&nbsp;</span> comuni italiani: importo totale e dettaglio per
+      settore di intervento.</p>
   </div>
   <div class="headline">
     <span class="val" id="hdTotal">&nbsp;</span>
@@ -563,6 +564,7 @@ let values = new Float64Array(N);   // values currently mapped
 let bins = new Int8Array(N);        // -1 = zero, 0..NBINS-1
 let breaks = [];
 let binMembers = [];
+let distinctLevels = 0;
 let binPaths = [];
 let zeroPath = null;
 let ranking = [];
@@ -574,16 +576,25 @@ function recompute() {
     const p = POP[i];
     values[i] = state.pc ? (p > 0 ? src[i] / p : 0) : src[i];
   }
-  const nz = [];
-  for (let i = 0; i < N; i++) if (values[i] > 0) nz.push(values[i]);
-  nz.sort((a, b) => a - b);
+  // Classes are cut on the DISTINCT amounts, not on the municipalities.
+  // Several sectors allocate a handful of formula amounts to thousands of
+  // municipalities - Navi gives the same 8.553 EUR to 793 of them - and
+  // cutting such a distribution by municipality count puts every cut inside
+  // one run of identical values: the cuts collapse into each other, the
+  // lowest class comes out empty, and every funded municipality ends up the
+  // same colour whatever it received. Cutting the distinct amounts instead
+  // keeps each class non-empty and lets the colour track the amount. The
+  // cost is that classes no longer hold equal numbers of municipalities,
+  // which the legend says.
+  const seen = new Set();
+  for (let i = 0; i < N; i++) if (values[i] > 0) seen.add(values[i]);
+  const levels = [...seen].sort((a, b) => a - b);
   breaks = [];
-  if (nz.length) {
-    for (let b = 1; b < NBINS; b++) {
-      const q = nz[Math.min(nz.length - 1, Math.floor(nz.length * b / NBINS))];
-      if (!breaks.length || q > breaks[breaks.length - 1]) breaks.push(q);
-    }
+  for (let b = 1; b < NBINS && levels.length; b++) {
+    const q = levels[Math.min(levels.length - 1, Math.floor(levels.length * b / NBINS))];
+    if (!breaks.length || q > breaks[breaks.length - 1]) breaks.push(q);
   }
+  distinctLevels = levels.length;
   binMembers = Array.from({ length: NBINS }, () => []);
   const zeros = [];
   for (let i = 0; i < N; i++) {
@@ -971,10 +982,13 @@ function renderLegend() {
     ticksEl.appendChild(t);
   }
   const financed = ranking.length;
+  const biggest = binMembers.reduce((m, a) => Math.max(m, a.length), 0);
   document.getElementById('rampCap').textContent = used +
-    ' classi di pari numerosità su ' + nf.format(financed) + ' comuni finanziati' +
-    (financed ? ', fino a ' + fmt(values[ranking[0]]) + '.' : '.') +
-    ' Passa sulle classi per isolarle.';
+    ' classi ricavate dai ' + nf.format(distinctLevels) + ' importi distinti di ' +
+    nf.format(financed) + ' comuni finanziati' +
+    (financed ? ', fino a ' + fmt(values[ranking[0]]) + '. ' : '. ') +
+    'La classe più numerosa ne raccoglie ' + nf.format(biggest) +
+    '. Passa sulle classi per isolarle.';
 }
 function syncRamp() {
   const ramp = document.getElementById('ramp');
@@ -1187,15 +1201,18 @@ function refresh() {
   document.getElementById('mapTitle').textContent = s.l;
   document.getElementById('legendTitle').textContent =
     state.pc ? 'Euro per abitante' : 'Importo assegnato';
-  document.getElementById('mapSub').textContent = state.pc
-    ? 'Euro per abitante. Le classi raggruppano in parti uguali i comuni con un importo maggiore di zero.'
-    : 'Importo assegnato a ciascun comune. Le classi raggruppano in parti uguali i comuni con un importo maggiore di zero.';
+  document.getElementById('mapSub').textContent = (state.pc
+    ? 'Euro per abitante. '
+    : 'Importo assegnato a ciascun comune. ') +
+    'Le classi dividono in parti uguali gli importi distinti, non i comuni: ' +
+    'molti comuni possono condividere lo stesso importo e quindi la stessa classe.';
   bAbs.setAttribute('aria-pressed', String(!state.pc));
   bPc.setAttribute('aria-pressed', String(state.pc));
   pickDirty = true;
   draw();
 }
 
+document.getElementById('unitCount').textContent = nf.format(N);
 document.getElementById('buildNote').textContent =
   nf.format(N) + ' comuni · ' + euro(NATIONAL_TOTAL) + ' di risorse mappate.';
 

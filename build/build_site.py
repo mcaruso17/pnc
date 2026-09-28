@@ -35,41 +35,59 @@ NEW_UNITS = {
                'reg': 'Veneto', 'reg_code': '05'},
 }
 
-# Column label in the workbook -> (display label, theme). Order here is the
-# order of the dropdown.
-THEMES = [
-    ('Infrastrutture e mobilità', [
-        ('Porti', 'Porti'),
-        ('Ferrovie regionali', 'Ferrovie regionali'),
-        ('Materiale rotabile', 'Materiale rotabile'),
-        ('A24-A25', 'Autostrade A24-A25'),
-        ('Strade ANAS', 'Strade ANAS'),
-        ('Autobus', 'Autobus'),
-        ('Navi', 'Navi'),
-    ]),
-    ('Territorio, abitare e aree fragili', [
-        ('Sisma', 'Ricostruzione post-sisma'),
-        ('Case popolari', 'Edilizia residenziale pubblica'),
-        ('Aree interne', 'Aree interne'),
-        ('Agricoltura', 'Agricoltura'),
-    ]),
-    ('Salute e ricerca', [
-        ('Ospedali', 'Ospedali'),
-        ('Ecosistema della salute', 'Ecosistema della salute'),
-        ('Ricerca medica', 'Ricerca medica'),
-        ('Ricerca sanitaria', 'Ricerca sanitaria'),
-    ]),
-    ('Cultura, innovazione e PA', [
-        ('Cultura', 'Cultura'),
-        ("Accordi per l'innovazione", "Accordi per l'innovazione"),
-        ('Innovazione', 'Innovazione'),
-        ('Orizzonte Europa', 'Orizzonte Europa'),
-        ('Digitalizzazione PA', 'Digitalizzazione PA'),
-    ]),
-    ('Giustizia', [
-        ('Edilizia penitenziaria', 'Edilizia penitenziaria'),
-    ]),
+# Presentation for each sector column the workbook may carry: the theme it is
+# grouped under in the dropdown, and the label shown in the page. The sectors
+# actually built come from the workbook's own columns, in the order below, so a
+# column the workbook drops simply disappears; a column that appears here
+# without an entry stops the build rather than being silently left out.
+THEME_ORDER = [
+    'Infrastrutture e mobilità',
+    'Territorio, abitare e aree fragili',
+    'Salute e ricerca',
+    'Cultura e innovazione',
+    'Giustizia',
 ]
+LABELS = {
+    'Porti': ('Infrastrutture e mobilità', 'Porti'),
+    'Ferrovie regionali': ('Infrastrutture e mobilità', 'Ferrovie regionali'),
+    'Materiale rotabile': ('Infrastrutture e mobilità', 'Materiale rotabile'),
+    'Strade': ('Infrastrutture e mobilità', 'Strade'),
+    'Strade ANAS': ('Infrastrutture e mobilità', 'Strade ANAS'),
+    'A24-A25': ('Infrastrutture e mobilità', 'Autostrade A24-A25'),
+    'Autobus': ('Infrastrutture e mobilità', 'Autobus'),
+    'Navi': ('Infrastrutture e mobilità', 'Navi'),
+    'Sisma': ('Territorio, abitare e aree fragili', 'Ricostruzione post-sisma'),
+    'Case popolari': ('Territorio, abitare e aree fragili', 'Edilizia residenziale pubblica'),
+    'Aree interne': ('Territorio, abitare e aree fragili', 'Aree interne'),
+    'Agricoltura': ('Territorio, abitare e aree fragili', 'Agricoltura'),
+    'Ospedali': ('Salute e ricerca', 'Ospedali'),
+    'Ecosistema della salute': ('Salute e ricerca', 'Ecosistema della salute'),
+    'Ricerca medica': ('Salute e ricerca', 'Ricerca medica'),
+    'Ricerca sanitaria': ('Salute e ricerca', 'Ricerca sanitaria'),
+    'Cultura': ('Cultura e innovazione', 'Cultura'),
+    'Innovazione': ('Cultura e innovazione', 'Innovazione'),
+    "Accordi per l'innovazione": ('Cultura e innovazione', "Accordi per l'innovazione"),
+    'Orizzonte Europa': ('Cultura e innovazione', 'Orizzonte Europa'),
+    'Digitalizzazione PA': ('Cultura e innovazione', 'Digitalizzazione PA'),
+    'Edilizia penitenziaria': ('Giustizia', 'Edilizia penitenziaria'),
+}
+NOT_A_SECTOR = ('CODICE ISTAT', 'COMUNE', 'Totale risorse', 'Risorse pc')
+
+
+def sector_columns(header):
+    """The workbook's sector columns, grouped and ordered for the dropdown."""
+    found = [h for h in header if h not in NOT_A_SECTOR and not h.endswith(' pc')]
+    unknown = [h for h in found if h not in LABELS]
+    if unknown:
+        raise SystemExit(
+            'the workbook has sector columns this build has no label for: %s\n'
+            'add them to LABELS in build/build_site.py' % ', '.join(repr(u) for u in unknown))
+    out = []
+    for theme in THEME_ORDER:
+        for column in found:
+            if LABELS[column][0] == theme:
+                out.append((theme, column, LABELS[column][1]))
+    return out
 
 B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 
@@ -165,6 +183,10 @@ def main():
     # ---------------------------------------------------------------- data
     header, records = read_dataset(args.xlsx)
     col = {name: i for i, name in enumerate(header)}
+    for required in ('CODICE ISTAT', 'COMUNE', 'Totale risorse', 'Risorse pc'):
+        if required not in col:
+            raise SystemExit('the workbook has no %r column; population and the '
+                             'totals are derived from it' % required)
     raw = {r[0]: r for r in records}
     print('dataset: %d municipalities' % len(raw))
 
@@ -210,7 +232,6 @@ def main():
     # Sort north-west to south-east only for stable output; index order is
     # what the value arrays refer to.
     order.sort(key=lambda c: (units[c]['reg_code'], units[c]['prov_code'], units[c]['name']))
-    index = {c: i for i, c in enumerate(order)}
 
     # ------------------------------------------------- border classification
     owners = defaultdict(set)
@@ -240,25 +261,31 @@ def main():
         total.append(round(tot))
 
     subjects, sectors_sum = [], [0.0] * len(order)
-    for theme, items in THEMES:
-        for column, label in items:
-            if column not in col:
-                raise SystemExit('missing column %r' % column)
-            idx, val = [], []
-            for i, code in enumerate(order):
-                v = num(code, column)
-                sectors_sum[i] += v
-                if v:
-                    idx.append(i)
-                    val.append(round(v))
-            subjects.append({'k': column.strip(), 'l': label, 't': theme,
-                             'i': idx, 'v': val})
-    other_idx, other_val = [], []
+    for theme, column, label in sector_columns(header):
+        idx, val = [], []
+        for i, code in enumerate(order):
+            v = num(code, column)
+            sectors_sum[i] += v
+            if v:
+                idx.append(i)
+                val.append(round(v))
+        subjects.append({'k': column.strip(), 'l': label, 't': theme,
+                         'i': idx, 'v': val})
+    # The workbook's total is the reference and has always been >= the sum of
+    # the sectors; the difference is published rather than hidden. A row where
+    # the sectors overshoot would drop out of this residual silently, so count
+    # those instead of ignoring them.
+    other_idx, other_val, overshoot = [], [], 0
     for i in range(len(order)):
         v = total[i] - round(sectors_sum[i])
         if v > 0.5:
             other_idx.append(i)
             other_val.append(round(v))
+        elif v < -0.5:
+            overshoot += 1
+    if overshoot:
+        print('warning: in %d municipalities the sectors add up to more than the '
+              'total; the excess is not shown anywhere' % overshoot)
     subjects.append({'k': 'altro', 'l': 'Altri interventi non ripartiti',
                      't': 'Voce residuale', 'i': other_idx, 'v': other_val})
 
