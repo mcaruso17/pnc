@@ -35,8 +35,6 @@ NEW_UNITS = {
                'reg': 'Veneto', 'reg_code': '05'},
 }
 
-# Column label in the workbook -> (display label, theme). Order here is the
-# order of the dropdown.
 # Presentation for each sector column the workbook may carry: the theme it is
 # grouped under in the dropdown, and the label shown in the page. The sectors
 # actually built come from the workbook's own columns, in the order below, so a
@@ -185,6 +183,10 @@ def main():
     # ---------------------------------------------------------------- data
     header, records = read_dataset(args.xlsx)
     col = {name: i for i, name in enumerate(header)}
+    for required in ('CODICE ISTAT', 'COMUNE', 'Totale risorse', 'Risorse pc'):
+        if required not in col:
+            raise SystemExit('the workbook has no %r column; population and the '
+                             'totals are derived from it' % required)
     raw = {r[0]: r for r in records}
     print('dataset: %d municipalities' % len(raw))
 
@@ -230,7 +232,6 @@ def main():
     # Sort north-west to south-east only for stable output; index order is
     # what the value arrays refer to.
     order.sort(key=lambda c: (units[c]['reg_code'], units[c]['prov_code'], units[c]['name']))
-    index = {c: i for i, c in enumerate(order)}
 
     # ------------------------------------------------- border classification
     owners = defaultdict(set)
@@ -270,12 +271,21 @@ def main():
                 val.append(round(v))
         subjects.append({'k': column.strip(), 'l': label, 't': theme,
                          'i': idx, 'v': val})
-    other_idx, other_val = [], []
+    # The workbook's total is the reference and has always been >= the sum of
+    # the sectors; the difference is published rather than hidden. A row where
+    # the sectors overshoot would drop out of this residual silently, so count
+    # those instead of ignoring them.
+    other_idx, other_val, overshoot = [], [], 0
     for i in range(len(order)):
         v = total[i] - round(sectors_sum[i])
         if v > 0.5:
             other_idx.append(i)
             other_val.append(round(v))
+        elif v < -0.5:
+            overshoot += 1
+    if overshoot:
+        print('warning: in %d municipalities the sectors add up to more than the '
+              'total; the excess is not shown anywhere' % overshoot)
     subjects.append({'k': 'altro', 'l': 'Altri interventi non ripartiti',
                      't': 'Voce residuale', 'i': other_idx, 'v': other_val})
 

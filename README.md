@@ -12,8 +12,14 @@ assegnati ai 7.894 comuni italiani: totale e dettaglio per settore di intervento
 - Coropleta a livello comunale, con zoom e trascinamento, per il totale PNC o per
   ciascuno dei 14 settori, piu' la voce residuale «Altri interventi non ripartiti».
 - Commutatore valore assoluto / euro per abitante.
-- 7 classi di pari numerosita' calcolate sui soli comuni con un importo maggiore di
-  zero; i comuni senza importo restano in grigio neutro.
+- 7 classi calcolate sugli **importi distinti** dei comuni finanziati, non sul numero
+  di comuni; i comuni senza importo restano in grigio neutro. Diversi settori
+  distribuiscono pochi importi di formula a migliaia di comuni (Navi assegna gli
+  stessi 8.553 euro a 793 comuni su 803): tagliando per numero di comuni ogni
+  taglio cade dentro una sequenza di valori identici, le classi collassano e tutti
+  i comuni finanziati finiscono dello stesso colore. Tagliando gli importi distinti
+  nessuna classe resta vuota e il colore segue l'importo. In cambio le classi non
+  contengono lo stesso numero di comuni, e la legenda lo dichiara.
 - Sui settori con pochi beneficiari (per esempio i porti: 42 comuni) i comuni troppo
   piccoli per essere visibili sono segnalati da un punto.
 - Ricerca per nome, classifica dei primi comuni, ripartizione per regione, scheda di
