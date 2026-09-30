@@ -31,7 +31,7 @@ assegnati ai 7.894 comuni italiani: totale e dettaglio per settore di intervento
 
 | | |
 |---|---|
-| Importi | `Dataset PNC.xlsx`, una riga per comune, codice ISTAT a 6 cifre |
+| Importi | il piu' recente `Dataset PNC*.xlsx` nella radice, una riga per comune, codice ISTAT a 6 cifre |
 | Confini | limiti comunali ISTAT, edizione 1&deg; gennaio 2026, via [openpolis/geojson-italy](https://github.com/openpolis/geojson-italy) (CC-BY) |
 | Ferrovie | `data/ferrovie.geojson`, tracciati OpenStreetMap (ODbL), estratto Italia del 23 settembre 2026 |
 | Totale mappato | 15,81 mld di euro su 7.894 comuni |
@@ -58,10 +58,14 @@ pagina e' di 0,18 MB, contro 0,58 MB che sarebbero serviti senza semplificare.
   colonne di ogni riga (scarto massimo 4&times;10<sup>-16</sup>), e la somma nazionale
   torna a 58,94 milioni di abitanti. I valori pro capite sono quindi ricalcolati nel
   browser e coincidono con le colonne `pc` del file.
-- **Totale contro somma dei settori.** Il totale di ogni comune e' sempre maggiore o
-  uguale alla somma dei settori elencati; a livello nazionale i settori coprono il
-  91,7% del totale. Il residuo (1,31 mld, 8,3%) e' esposto come «Altri interventi
-  non ripartiti» invece di essere taciuto.
+- **Totale contro somma dei settori.** A livello nazionale i settori coprono il
+  91,7% del totale e il residuo (1,31 mld, 8,3%) e' esposto come «Altri interventi
+  non ripartiti» invece di essere taciuto. In 343 comuni, pero', la somma dei
+  settori **supera** il totale dichiarato, per 556,4 mln complessivi: la
+  redistribuzione di «Ferrovie regionali» e «Navi» su molti meno comuni non e'
+  stata accompagnata da un ricalcolo di `Totale risorse`. Per questi comuni la
+  pagina non mostra nessuna voce residua e lo dichiara nella scheda del comune.
+  La build stampa un avviso con il conteggio.
 - **Elenco dei settori.** I settori non sono piu' cablati nello script: si ricavano
   dalle colonne del workbook, ordinati e raggruppati secondo `LABELS` in
   `build/build_site.py`. Una colonna che il workbook toglie sparisce dalla pagina;
@@ -93,6 +97,11 @@ python3 build/extract_rail.py italy-latest.osm.pbf
 
 La build usa solo la libreria standard di Python; `extract_rail.py`, che si lancia a
 parte e di rado, richiede `osmium`. `build/` contiene:
+
+Se nella radice ci sono piu' `Dataset PNC*.xlsx`, la build sceglie il piu' recente
+secondo la data di salvataggio dentro il file, non secondo la data del file system
+(in un clone nuovo le date dei file sono quelle del checkout), e stampa quale ha
+usato. Con `--xlsx` si forza un file preciso.
 
 | file | ruolo |
 |---|---|

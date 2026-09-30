@@ -8,10 +8,11 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from xlsx_reader import rows  # noqa: E402
+from build_site import default_workbook  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HTML = os.path.join(ROOT, 'index.html')
-XLSX = os.path.join(ROOT, 'Dataset PNC.xlsx')
+XLSX = default_workbook(ROOT)
 
 html = open(HTML, encoding='utf-8').read()
 m = re.search(r'const DATA = (\{.*?\});\n', html, re.S)
@@ -34,6 +35,7 @@ for s in data['subjects']:
     dense[s['k']] = arr
 
 fails = []
+clamped = []
 random.seed(7)
 for i in random.sample(range(len(codes)), 400):
     code = codes[i]
@@ -46,10 +48,17 @@ for i in random.sample(range(len(codes)), 400):
         fails.append((code, 'popolazione', data['pop'][i], tot / pc))
     for s in data['subjects']:
         if s['k'] == 'altro':
+            # The residual is the total minus the sectors, and is clamped at
+            # zero: where the sectors overshoot the stated total there is no
+            # residual to show. Count those rather than calling them failures,
+            # because the overshoot is in the workbook, not in the build.
             expect = tot - sum(float(row[col[c]]) for c in header
                                if c not in ('CODICE ISTAT', 'COMUNE', 'Totale risorse',
                                             'Risorse pc') and not c.endswith(' pc'))
-            if abs(dense['altro'][i] - round(expect)) > 2:
+            if expect < -0.5:
+                clamped.append((code, expect))
+                expect = 0.0
+            if abs(dense['altro'][i] - round(max(expect, 0.0))) > 2:
                 fails.append((code, 'altro', dense['altro'][i], expect))
             continue
         key = s['k'] if s['k'] in col else s['k'] + ' '
@@ -69,3 +78,9 @@ if fails:
 print('OK  %d municipalities, %d sectors, national total EUR %.2f bn'
       % (len(codes), len(data['subjects']), national / 1e9))
 print('OK  400 random municipalities match the workbook on every column')
+if clamped:
+    worst = min(clamped, key=lambda t: t[1])
+    print('NOTE  %d of the 400 sampled municipalities have sectors adding up to '
+          'more than their stated total, so no residual is shown for them; '
+          'the largest overshoot sampled is %s at EUR %.0f'
+          % (len(clamped), worst[0], -worst[1]))
