@@ -19,6 +19,48 @@ from xlsx_reader import rows  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+
+def default_workbook(root=None):
+    """The PNC workbook to build from.
+
+    New releases have arrived under new names ('Dataset PNC 1.xlsx' beside
+    'Dataset PNC.xlsx'), and a build that silently picks the stale one is worse
+    than a build that stops: it publishes old figures that look current. So
+    match every 'Dataset PNC*.xlsx' in the repository root and take the newest
+    by content date, printing which one won; name --xlsx explicitly to override.
+    """
+    root = root or ROOT
+    found = sorted(f for f in os.listdir(root)
+                   if f.startswith('Dataset PNC') and f.endswith('.xlsx')
+                   and not f.startswith('~$'))
+    if not found:
+        raise SystemExit('no "Dataset PNC*.xlsx" in %s' % root)
+    if len(found) == 1:
+        return os.path.join(root, found[0])
+    newest = max(found, key=lambda f: workbook_date(os.path.join(root, f)))
+    print('workbook: %d candidates %s, using %r'
+          % (len(found), ', '.join(repr(f) for f in found), newest))
+    return os.path.join(root, newest)
+
+
+def workbook_date(path):
+    """When the workbook itself was last saved, from its OOXML metadata.
+
+    Checkout order decides the files' mtimes in a fresh clone, so the file
+    system cannot say which release is newer; docProps/core.xml can.
+    """
+    import re
+    import zipfile
+    try:
+        with zipfile.ZipFile(path) as z:
+            core = z.read('docProps/core.xml').decode('utf-8', 'replace')
+        stamps = re.findall(r'<dcterms:(?:modified|created)[^>]*>([^<]+)<', core)
+        if stamps:
+            return max(stamps)
+    except (KeyError, zipfile.BadZipFile):
+        pass
+    return ''
+
 # The boundary file is the 1 January 2026 ISTAT vintage (7,896 municipalities);
 # the PNC dataset uses the list in force from 21 February 2026 (7,894). Two
 # mergers separate them, so the older polygons are dissolved into their
@@ -174,14 +216,18 @@ def main():
     ap.add_argument('--topojson', default=os.path.join(
         os.path.dirname(ROOT), 'openpolis', 'geojson-italy', 'topojson',
         'limits_IT_municipalities.topo.json'))
-    ap.add_argument('--xlsx', default=os.path.join(ROOT, 'Dataset PNC.xlsx'))
+    ap.add_argument('--xlsx', default=None,
+                    help='PNC workbook; defaults to the newest "Dataset PNC*.xlsx"')
     ap.add_argument('--rail', default=os.path.join(ROOT, 'data', 'ferrovie.geojson'))
     ap.add_argument('--template', default=os.path.join(ROOT, 'build', 'template.html'))
     ap.add_argument('--out', default=os.path.join(ROOT, 'index.html'))
     args = ap.parse_args()
+    if args.xlsx is None:
+        args.xlsx = default_workbook()
 
     # ---------------------------------------------------------------- data
     header, records = read_dataset(args.xlsx)
+    print('workbook: %s' % os.path.basename(args.xlsx))
     col = {name: i for i, name in enumerate(header)}
     for required in ('CODICE ISTAT', 'COMUNE', 'Totale risorse', 'Risorse pc'):
         if required not in col:
@@ -275,17 +321,21 @@ def main():
     # the sectors; the difference is published rather than hidden. A row where
     # the sectors overshoot would drop out of this residual silently, so count
     # those instead of ignoring them.
-    other_idx, other_val, overshoot = [], [], 0
+    other_idx, other_val = [], []
+    over_idx, over_val = [], []
     for i in range(len(order)):
         v = total[i] - round(sectors_sum[i])
         if v > 0.5:
             other_idx.append(i)
             other_val.append(round(v))
         elif v < -0.5:
-            overshoot += 1
-    if overshoot:
+            over_idx.append(i)
+            over_val.append(round(-v))
+    if over_idx:
         print('warning: in %d municipalities the sectors add up to more than the '
-              'total; the excess is not shown anywhere' % overshoot)
+              'stated total, by %.1f mln in all; the page shows no residual for '
+              'them and says so on the municipality card'
+              % (len(over_idx), sum(over_val) / 1e6))
     subjects.append({'k': 'altro', 'l': 'Altri interventi non ripartiti',
                      't': 'Voce residuale', 'i': other_idx, 'v': other_val})
 
@@ -305,6 +355,8 @@ def main():
         'rings': [units[c]['rings'] for c in order],
         'pop': population,
         'total': total,
+        'overIdx': over_idx,
+        'overVal': over_val,
         'subjects': subjects,
     }
 

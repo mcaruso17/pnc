@@ -182,6 +182,8 @@ main .wrap{display:grid; grid-template-columns:minmax(0,1fr) 372px; gap:22px; pa
 .brk li.cur .t{font-weight:600}
 .brk li.cur .track i{background:var(--navy-800)}
 .brk .none{color:var(--ink-3); font-size:13px}
+.detail .warn{margin:12px 0 0; padding:9px 11px; background:#fdf6e3; border-left:3px solid var(--gold);
+  font-size:12.5px; line-height:1.45; color:#5c4a16}
 
 /* ---------------------------------------------------------------- footer */
 footer{background:var(--navy-900); color:#b9cbdc; font-size:13px; margin-top:8px}
@@ -1070,8 +1072,20 @@ function renderDetail() {
           '<li class="' + (p.k === state.key ? 'cur' : '') + '"><div class="t"><span>' + esc(p.l) +
           '</span><span>' + euro(p.v) + '</span></div><div class="track"><i style="width:' +
           (100 * p.v / max).toFixed(1) + '%"></i></div></li>').join('') + '</ul>'
-      : '<p class="brk none">Nessun importo ripartito per settore.</p>');
+      : '<p class="brk none">Nessun importo ripartito per settore.</p>') +
+    (OVERSHOOT.has(i)
+      ? '<p class="warn">I settori elencati sommano ' + euro(OVERSHOOT.get(i)) +
+        ' in pi\u00f9 del totale dichiarato per questo comune, quindi non risulta ' +
+        'nessuna voce residua. Il dato viene dal file di origine.</p>'
+      : '');
 }
+
+// Municipalities whose sector amounts add up to more than the total the
+// workbook states for them. The page reports the gap on the card rather than
+// hiding it in a residual clamped to zero.
+const OVERSHOOT = new Map();
+for (let j = 0; j < (DATA.overIdx || []).length; j++)
+  OVERSHOOT.set(DATA.overIdx[j], DATA.overVal[j]);
 
 /* ---------------------------------------------------------------- regions */
 const REGIONS = (() => {
